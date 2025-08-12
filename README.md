@@ -16,7 +16,9 @@
 
 ### 📱 Core Functionality
 - **Contact Import**: Import contacts directly from your device with search and bulk selection
+- **Smart Search**: Real-time search through all kindred by name, phone, or email
 - **Kindred Management**: Add, edit, and delete kindred with phone and email information
+- **Alphabetical Organization**: All contacts automatically sorted alphabetically
 - **Profile Pictures**: Camera and gallery access with custom cropping interface
 - **Important Dates**: Track birthdays, anniversaries in MM/DD/YYYY format
 - **Daily Kindred Selection**: Smart random selection of a kindred to reach out to each day
@@ -130,9 +132,10 @@ flutter build ios --release
    - Onboarding automatically appears for new users with no contacts
 
 2. **Add Your First Kindred**
-   - Import contacts from your device using the "Import from Device" option
-   - Search and select multiple contacts with bulk operations
-   - Or manually add kindred using the "Add Kindred" button
+   - **Quick Import**: Use "Import from Device" button directly on home screen empty state
+   - **Bulk Import**: Access import from floating action button on contact list screen
+   - **Device Integration**: Search and select multiple contacts with bulk operations
+   - **Manual Entry**: Add kindred individually using "Add Kindred" button
    - Fill in name, phone, and email information
    - Add profile pictures from camera or gallery
    - Add important dates like birthdays or anniversaries (MM/DD/YYYY format)
@@ -146,6 +149,9 @@ flutter build ios --release
 
 4. **Manage Kindred**
    - Access "All Kindred" from the home screen menu or people icon
+   - **Smart Search**: Use search bar to quickly find specific kindred by name, phone, or email
+   - **Alphabetical List**: All kindred automatically sorted alphabetically for easy browsing
+   - **Dual Action Buttons**: Import more contacts or add individual kindred via floating buttons
    - Tap any kindred to edit their information and photo
    - Use the popup menu to edit or delete kindred
    - View upcoming important dates highlighted on kindred cards

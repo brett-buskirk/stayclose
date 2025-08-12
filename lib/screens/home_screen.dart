@@ -422,6 +422,26 @@ class _HomeScreenState extends State<HomeScreen> {
                   padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 ),
               ),
+              SizedBox(height: 12),
+              Text(
+                'or',
+                style: TextStyle(
+                  color: Colors.grey[500],
+                  fontSize: 14,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: _showImportContactsDialog,
+                icon: Icon(Icons.contact_phone, color: Colors.orange),
+                label: Text('Import from Device'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.orange,
+                  side: BorderSide(color: Colors.orange),
+                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                ),
+              ),
             ],
           ),
         ),
