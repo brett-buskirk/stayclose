@@ -416,10 +416,13 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 children: [
                   SizedBox(height: 20),
-                  Icon(
-                    Icons.today,
-                    size: 60,
-                    color: Colors.teal,
+                  Container(
+                    width: 60,
+                    height: 60,
+                    child: Image.asset(
+                      'assets/favicon.png',
+                      fit: BoxFit.contain,
+                    ),
                   ),
                   SizedBox(height: 10),
                   Text(

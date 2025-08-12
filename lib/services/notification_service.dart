@@ -244,8 +244,8 @@ class NotificationService {
   Future<void> showTestNotification() async {
     await showNotification(
       999, // ID for test notification
-      '🔔 Test Notification',
-      'This is a test notification from StayClose. Your notifications are working correctly!',
+      '👋 Test Nudge',
+      'This is a test nudge from StayClose. Your nudges are working correctly!',
     );
   }
 }

@@ -10,7 +10,7 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final NotificationService _notificationService = NotificationService();
-  TimeOfDay _notificationTime = TimeOfDay(hour: 9, minute: 0); // Default 9:00 AM
+  TimeOfDay _nudgeTime = TimeOfDay(hour: 9, minute: 0); // Default 9:00 AM
   ThemeMode _currentThemeMode = ThemeMode.system;
   bool _isLoading = true;
 
@@ -28,7 +28,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final themeModeIndex = prefs.getInt('theme_mode') ?? 0;
       
       setState(() {
-        _notificationTime = TimeOfDay(hour: hour, minute: minute);
+        _nudgeTime = TimeOfDay(hour: hour, minute: minute);
         _currentThemeMode = ThemeMode.values[themeModeIndex];
         _isLoading = false;
       });
@@ -40,14 +40,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  Future<void> _saveNotificationTime(TimeOfDay time) async {
+  Future<void> _saveNudgeTime(TimeOfDay time) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt('notification_hour', time.hour);
       await prefs.setInt('notification_minute', time.minute);
       
       setState(() {
-        _notificationTime = time;
+        _nudgeTime = time;
       });
 
       // Reschedule notifications with new time
@@ -56,7 +56,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Notification time updated to ${time.format(context)}'),
+            content: Text('Nudge time updated to ${time.format(context)}'),
             backgroundColor: Colors.teal,
           ),
         );
@@ -66,7 +66,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to update notification time'),
+            content: Text('Failed to update nudge time'),
             backgroundColor: Colors.red,
           ),
         );
@@ -77,7 +77,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _selectTime() async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
-      initialTime: _notificationTime,
+      initialTime: _nudgeTime,
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
@@ -90,8 +90,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       },
     );
 
-    if (picked != null && picked != _notificationTime) {
-      await _saveNotificationTime(picked);
+    if (picked != null && picked != _nudgeTime) {
+      await _saveNudgeTime(picked);
     }
   }
 
@@ -217,7 +217,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Test notification sent!'),
+            content: Text('Test nudge sent!'),
             backgroundColor: Colors.teal,
           ),
         );
@@ -227,7 +227,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to send test notification'),
+            content: Text('Failed to send test nudge'),
             backgroundColor: Colors.red,
           ),
         );
@@ -255,7 +255,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Daily Notifications',
+                          'Daily Nudges',
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
@@ -264,7 +264,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                         SizedBox(height: 16),
                         Text(
-                          'Set when you\'d like to receive your daily kindred reminder',
+                          'Set when you\'d like to receive your daily kindred nudge',
                           style: TextStyle(
                             fontSize: 16,
                             color: Colors.grey[600],
@@ -273,16 +273,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         SizedBox(height: 20),
                         ListTile(
                           leading: Icon(Icons.schedule, color: Colors.teal),
-                          title: Text('Notification Time'),
-                          subtitle: Text(_notificationTime.format(context)),
+                          title: Text('Nudge Time'),
+                          subtitle: Text(_nudgeTime.format(context)),
                           trailing: Icon(Icons.chevron_right),
                           onTap: _selectTime,
                         ),
                         Divider(),
                         ListTile(
                           leading: Icon(Icons.notification_add, color: Colors.blue),
-                          title: Text('Send Test Notification'),
-                          subtitle: Text('Test your notification settings'),
+                          title: Text('Send Test Nudge'),
+                          subtitle: Text('Test your nudge settings'),
                           trailing: Icon(Icons.send),
                           onTap: _testNotification,
                         ),
@@ -340,7 +340,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'About Daily Reminders',
+                          'About Daily Nudges',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -349,7 +349,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                         SizedBox(height: 12),
                         Text(
-                          '• Each day at your chosen time, you\'ll receive a notification\n'
+                          '• A nudge is a gentle reminder to reach out to someone you care about\n'
+                          '• Each day at your chosen time, you\'ll receive a nudge\n'
                           '• The app randomly selects one of your kindred\n'
                           '• This helps you stay connected with important people\n'
                           '• You can change the time anytime in these settings',
