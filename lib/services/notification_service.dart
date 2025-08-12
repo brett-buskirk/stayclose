@@ -95,15 +95,15 @@ class NotificationService {
     final minute = prefs.getInt('notification_minute') ?? 0;
 
     await flutterLocalNotificationsPlugin.zonedSchedule(
-      1, // ID for daily contact reminder
+      1, // ID for daily kindred reminder
       'Time to reach out! 📱',
-      'Check who\'s your contact of the day',
+      'Check who\'s your kindred of the day',
       _nextInstanceOfTime(hour, minute),
       const NotificationDetails(
         android: AndroidNotificationDetails(
           'daily_contact_reminder',
-          'Daily Contact Reminder',
-          channelDescription: 'Daily reminder to check your contact of the day',
+          'Daily Kindred Reminder',
+          channelDescription: 'Daily reminder to check your kindred of the day',
           importance: Importance.high,
           priority: Priority.high,
           icon: '@mipmap/ic_launcher',
@@ -235,8 +235,8 @@ class NotificationService {
 
   Future<void> showDailyContactNotification(Contact contact) async {
     await showNotification(
-      2, // ID for immediate daily contact notification
-      '👋 Your contact of the day',
+      2, // ID for immediate daily kindred notification
+      '👋 Your kindred of the day',
       'Time to reach out to ${contact.name}!',
     );
   }

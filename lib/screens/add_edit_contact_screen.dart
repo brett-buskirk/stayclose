@@ -134,7 +134,7 @@ class _AddEditContactScreenState extends State<AddEditContactScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.contact == null ? 'Add Contact' : 'Edit Contact'),
+        title: Text(widget.contact == null ? 'Add Kindred' : 'Edit Kindred'),
         backgroundColor: Colors.teal,
         foregroundColor: Colors.white,
       ),

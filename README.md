@@ -4,7 +4,7 @@
 
 ## 🎯 Why StayClose?
 
-- **🎲 Smart Daily Selection**: Randomly picks a contact each day, prioritizing those with upcoming important dates
+- **🎲 Smart Daily Selection**: Randomly picks a kindred each day, prioritizing those with upcoming important dates
 - **📸 Personal Touch**: Add profile pictures with an accessible, custom cropping interface
 - **⏰ Your Schedule**: Set your preferred notification time - no more fixed schedules
 - **🎨 Beautiful Design**: Modern Material 3 interface optimized for accessibility
@@ -13,13 +13,13 @@
 ## ✨ Features
 
 ### 📱 Core Functionality
-- **Contact Management**: Add, edit, and delete contacts with phone and email information
-- **Profile Pictures**: Upload and crop square profile photos for each contact with accessible UI
-- **Important Dates**: Track birthdays, anniversaries, and other meaningful dates for each contact
-- **Daily Contact Selection**: Smart random selection of a contact to reach out to each day
-- **Contact of the Day Home**: Featured contact display with large avatar and quick actions
-- **Persistent Selection**: Same contact selected for the entire day (resets daily)
-- **Smart Prioritization**: 30% chance to select contacts with upcoming important dates
+- **Kindred Management**: Add, edit, and delete kindred with phone and email information
+- **Profile Pictures**: Upload and crop square profile photos for each kindred with accessible UI
+- **Important Dates**: Track birthdays, anniversaries, and other meaningful dates for each kindred
+- **Daily Kindred Selection**: Smart random selection of a kindred to reach out to each day
+- **Kindred of the Day Home**: Featured kindred display with large avatar and quick actions
+- **Persistent Selection**: Same kindred selected for the entire day (resets daily)
+- **Smart Prioritization**: 30% chance to select kindred with upcoming important dates
 
 ### 🔔 Notifications & Settings
 - **Customizable Daily Reminders**: Set your preferred notification time (default 9:00 AM)
@@ -31,16 +31,16 @@
 ### 🎨 Modern UI/UX
 - **Material 3 Design**: Clean, modern interface with teal color scheme
 - **Custom Image Cropping**: Accessible crop interface with properly positioned controls
-- **Contact Avatars**: Profile pictures with letter fallbacks for contacts without photos
-- **Contact Cards**: Beautiful card-based layout with circular avatars
-- **Upcoming Dates**: Visual indicators for contacts with important dates in the next 30 days
+- **Kindred Avatars**: Profile pictures with letter fallbacks for kindred without photos
+- **Kindred Cards**: Beautiful card-based layout with circular avatars
+- **Upcoming Dates**: Visual indicators for kindred with important dates in the next 30 days
 - **Responsive Design**: Optimized for various screen sizes and different devices
-- **Empty States**: Helpful messages when no contacts exist
+- **Empty States**: Helpful messages when no kindred exist
 
-### 📞 Contact Actions
+### 📞 Kindred Actions
 - **Quick Copy**: Copy phone numbers and emails to clipboard
-- **Contact Details**: View all information including important dates
-- **Profile Photo Management**: Add, edit, or remove contact profile pictures
+- **Kindred Details**: View all information including important dates
+- **Profile Photo Management**: Add, edit, or remove kindred profile pictures
 - **Action Buttons**: Quick access to call, text, or email (copy contact info)
 
 ## 🛠 Technical Details
@@ -115,24 +115,24 @@ flutter build ios --release
 
 ## 📱 Usage
 
-1. **Add Your First Contact**
-   - Tap the "Add Contact" button on the home screen or floating action button
+1. **Add Your First Kindred**
+   - Tap the "Add Kindred" button on the home screen or floating action button
    - Fill in name, phone, and email information
    - Add a profile picture by tapping the camera icon (camera or gallery)
    - Crop the photo using the accessible cropping interface
    - Add important dates like birthdays or anniversaries
 
-2. **Contact of the Day**
-   - Your home screen shows the daily selected contact with their photo
-   - Tap the large contact avatar to view/edit their details
+2. **Kindred of the Day**
+   - Your home screen shows the daily selected kindred with their photo
+   - Tap the large kindred avatar to view/edit their details
    - Use action buttons to copy contact information
    - Refresh selection using the three-dot menu
 
-3. **Manage Contacts**
-   - Access "All Contacts" from the home screen menu or people icon
-   - Tap any contact to edit their information and photo
-   - Use the popup menu to edit or delete contacts
-   - View upcoming important dates highlighted on contact cards
+3. **Manage Kindred**
+   - Access "All Kindred" from the home screen menu or people icon
+   - Tap any kindred to edit their information and photo
+   - Use the popup menu to edit or delete kindred
+   - View upcoming important dates highlighted on kindred cards
 
 4. **Customize Notifications**
    - Access Settings from the menu on any screen
@@ -141,7 +141,7 @@ flutter build ios --release
    - Allow notification permissions when prompted
 
 5. **Profile Pictures**
-   - Add photos to contacts using the camera icon
+   - Add photos to kindred using the camera icon
    - Choose between camera or gallery
    - Use the custom crop interface with accessible button placement
    - Photos are automatically saved and managed locally

@@ -130,13 +130,13 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               SizedBox(height: 20),
               Text(
-                'No contacts yet',
+                'No kindred yet',
                 style: Theme.of(context).textTheme.headlineSmall,
                 textAlign: TextAlign.center,
               ),
               SizedBox(height: 10),
               Text(
-                'Add your first contact to get daily reminders!',
+                'Add your first kindred to get daily reminders!',
                 style: TextStyle(color: Colors.grey[600]),
                 textAlign: TextAlign.center,
               ),
@@ -144,7 +144,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ElevatedButton.icon(
                 onPressed: _navigateToAddContact,
                 icon: Icon(Icons.add),
-                label: Text('Add Your First Contact'),
+                label: Text('Add Your First Kindred'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.teal,
                   foregroundColor: Colors.white,
@@ -363,7 +363,7 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             onPressed: _navigateToContactsList,
             icon: Icon(Icons.people),
-            tooltip: 'All Contacts',
+            tooltip: 'All Kindred',
           ),
           PopupMenuButton<String>(
             onSelected: (value) {
@@ -382,7 +382,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     Icon(Icons.refresh, color: Colors.blue),
                     SizedBox(width: 8),
-                    Text('Pick New Contact'),
+                    Text('Pick New Kindred'),
                   ],
                 ),
               ),
@@ -392,7 +392,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     Icon(Icons.add, color: Colors.green),
                     SizedBox(width: 8),
-                    Text('Add Contact'),
+                    Text('Add Kindred'),
                   ],
                 ),
               ),
@@ -423,7 +423,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   SizedBox(height: 10),
                   Text(
-                    'Contact of the Day',
+                    'Kindred of the Day',
                     style: Theme.of(context).textTheme.headlineSmall,
                     textAlign: TextAlign.center,
                   ),
@@ -439,7 +439,7 @@ class _HomeScreenState extends State<HomeScreen> {
         onPressed: _navigateToAddContact,
         backgroundColor: Colors.teal,
         foregroundColor: Colors.white,
-        tooltip: 'Add Contact',
+        tooltip: 'Add Kindred',
         child: Icon(Icons.add),
       ) : null,
     );

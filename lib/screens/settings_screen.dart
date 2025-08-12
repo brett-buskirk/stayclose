@@ -144,7 +144,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                         SizedBox(height: 16),
                         Text(
-                          'Set when you\'d like to receive your daily contact reminder',
+                          'Set when you\'d like to receive your daily kindred reminder',
                           style: TextStyle(
                             fontSize: 16,
                             color: Colors.grey[600],
@@ -188,7 +188,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         SizedBox(height: 12),
                         Text(
                           '• Each day at your chosen time, you\'ll receive a notification\n'
-                          '• The app randomly selects one of your contacts\n'
+                          '• The app randomly selects one of your kindred\n'
                           '• This helps you stay connected with important people\n'
                           '• You can change the time anytime in these settings',
                           style: TextStyle(

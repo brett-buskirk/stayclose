@@ -57,7 +57,7 @@ class _ImageCropScreenState extends State<ImageCropScreen> {
           onPressed: _cancelCrop,
         ),
         title: Text(
-          'Crop Contact Photo',
+          'Crop Kindred Photo',
           style: TextStyle(color: Colors.white, fontSize: 18),
         ),
         actions: [

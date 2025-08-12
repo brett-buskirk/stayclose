@@ -177,7 +177,7 @@ class _ContactListScreenState extends State<ContactListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('All Contacts'),
+        title: Text('All Kindred'),
         backgroundColor: Colors.teal,
         foregroundColor: Colors.white,
         actions: [
@@ -206,7 +206,7 @@ class _ContactListScreenState extends State<ContactListScreen> {
                   ),
                   SizedBox(height: 16),
                   Text(
-                    'No contacts yet',
+                    'No kindred yet',
                     style: TextStyle(
                       fontSize: 24,
                       color: Colors.grey[600],
@@ -214,7 +214,7 @@ class _ContactListScreenState extends State<ContactListScreen> {
                   ),
                   SizedBox(height: 8),
                   Text(
-                    'Add your first contact to get started',
+                    'Add your first kindred to get started',
                     style: TextStyle(
                       fontSize: 16,
                       color: Colors.grey[500],
@@ -241,7 +241,7 @@ class _ContactListScreenState extends State<ContactListScreen> {
         backgroundColor: Colors.teal,
         foregroundColor: Colors.white,
         icon: Icon(Icons.add),
-        label: Text('Add Contact'),
+        label: Text('Add Kindred'),
       ),
     );
   }
