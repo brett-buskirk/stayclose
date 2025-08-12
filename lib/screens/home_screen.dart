@@ -9,6 +9,8 @@ import 'package:stayclose/services/daily_contact_service.dart';
 import 'package:stayclose/services/notification_service.dart';
 import 'package:stayclose/services/image_service.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_contacts/flutter_contacts.dart' as flutter_contacts;
+import 'package:permission_handler/permission_handler.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -167,6 +169,177 @@ class _HomeScreenState extends State<HomeScreen> {
         builder: (context) => SettingsScreen(),
       ),
     );
+  }
+
+  Future<void> _showImportContactsDialog() async {
+    // Request contact permission
+    final permissionStatus = await Permission.contacts.request();
+    
+    if (permissionStatus.isDenied) {
+      _showErrorDialog(
+        'Permission Required',
+        'Contact access is needed to import contacts from your device. Please grant permission in settings.',
+      );
+      return;
+    }
+
+    if (permissionStatus.isPermanentlyDenied) {
+      _showErrorDialog(
+        'Permission Required',
+        'Contact access was permanently denied. Please enable it in device settings.',
+      );
+      await openAppSettings();
+      return;
+    }
+
+    try {
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => Center(
+          child: Card(
+            child: Padding(
+              padding: EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(color: Colors.teal),
+                  SizedBox(height: 16),
+                  Text('Loading device contacts...'),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // Fetch device contacts
+      final deviceContacts = await flutter_contacts.FlutterContacts.getContacts(withProperties: true);
+      
+      // Close loading dialog
+      Navigator.pop(context);
+
+      if (deviceContacts.isEmpty) {
+        _showErrorDialog('No Contacts', 'No contacts found on your device.');
+        return;
+      }
+
+      // Show contact selection dialog
+      _showContactSelectionDialog(deviceContacts.toList());
+    } catch (e) {
+      // Close loading dialog if still open
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+      
+      _showErrorDialog('Error', 'Failed to load contacts: $e');
+    }
+  }
+
+  void _showContactSelectionDialog(List<flutter_contacts.Contact> deviceContacts) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        child: Container(
+          width: MediaQuery.of(context).size.width * 0.9,
+          height: MediaQuery.of(context).size.height * 0.7,
+          child: Column(
+            children: [
+              AppBar(
+                title: Text('Select Contacts to Import'),
+                backgroundColor: Colors.teal,
+                foregroundColor: Colors.white,
+                automaticallyImplyLeading: false,
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text('Cancel', style: TextStyle(color: Colors.white)),
+                  ),
+                ],
+              ),
+              Expanded(
+                child: ContactSelectionList(
+                  deviceContacts: deviceContacts,
+                  onContactsSelected: (selectedContacts) {
+                    Navigator.pop(context);
+                    _importSelectedContacts(selectedContacts);
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _importSelectedContacts(List<flutter_contacts.Contact> selectedContacts) async {
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => Center(
+          child: Card(
+            child: Padding(
+              padding: EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(color: Colors.teal),
+                  SizedBox(height: 16),
+                  Text('Importing ${selectedContacts.length} contacts...'),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      int importedCount = 0;
+      
+      for (final deviceContact in selectedContacts) {
+        // Convert device contact to our Contact model
+        final contact = Contact(
+          id: DateTime.now().millisecondsSinceEpoch.toString() + '_' + importedCount.toString(),
+          name: deviceContact.displayName.isNotEmpty ? deviceContact.displayName : 'Unknown',
+          phone: deviceContact.phones.isNotEmpty 
+            ? deviceContact.phones.first.number 
+            : '',
+          email: deviceContact.emails.isNotEmpty 
+            ? deviceContact.emails.first.address 
+            : '',
+          imagePath: null, // We'll handle image import separately if needed
+          importantDates: [], // User can add these manually later
+        );
+
+        // Only import contacts with at least a name and phone/email
+        if (contact.name.isNotEmpty && 
+            (contact.phone.isNotEmpty || contact.email.isNotEmpty)) {
+          _contacts.add(contact);
+          importedCount++;
+        }
+      }
+
+      // Save the updated contacts list
+      await _contactStorage.saveContacts(_contacts);
+      
+      Navigator.pop(context); // Close loading dialog
+
+      // Refresh the contact list and daily contact
+      await _loadContactsAndSelectDaily();
+      
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Successfully imported $importedCount contacts'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      Navigator.pop(context); // Close loading dialog
+      _showErrorDialog('Import Failed', 'Failed to import contacts: $e');
+    }
   }
 
   Widget _buildDailyContactCard() {
@@ -363,6 +536,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 _refreshDailyContact();
               } else if (value == 'add_contact') {
                 _navigateToAddContact();
+              } else if (value == 'import_contacts') {
+                _showImportContactsDialog();
               } else if (value == 'settings') {
                 _navigateToSettings();
               }
@@ -385,6 +560,16 @@ class _HomeScreenState extends State<HomeScreen> {
                     Icon(Icons.add, color: Colors.green),
                     SizedBox(width: 8),
                     Text('Add Kindred'),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'import_contacts',
+                child: Row(
+                  children: [
+                    Icon(Icons.contact_phone, color: Colors.orange),
+                    SizedBox(width: 8),
+                    Text('Import from Device'),
                   ],
                 ),
               ),
@@ -437,6 +622,166 @@ class _HomeScreenState extends State<HomeScreen> {
         tooltip: 'Add Kindred',
         child: Icon(Icons.add),
       ) : null,
+    );
+  }
+}
+
+class ContactSelectionList extends StatefulWidget {
+  final List<flutter_contacts.Contact> deviceContacts;
+  final Function(List<flutter_contacts.Contact>) onContactsSelected;
+
+  ContactSelectionList({
+    required this.deviceContacts,
+    required this.onContactsSelected,
+  });
+
+  @override
+  _ContactSelectionListState createState() => _ContactSelectionListState();
+}
+
+class _ContactSelectionListState extends State<ContactSelectionList> {
+  Map<String, bool> _selectedContacts = {};
+  String _searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize all contacts as not selected
+    for (final contact in widget.deviceContacts) {
+      _selectedContacts[contact.id] = false;
+    }
+  }
+
+  List<flutter_contacts.Contact> get _filteredContacts {
+    if (_searchQuery.isEmpty) {
+      return widget.deviceContacts;
+    }
+    return widget.deviceContacts.where((contact) {
+      final name = contact.displayName.toLowerCase();
+      return name.contains(_searchQuery.toLowerCase());
+    }).toList();
+  }
+
+  List<flutter_contacts.Contact> get _selectedContactsList {
+    return widget.deviceContacts.where((contact) {
+      return _selectedContacts[contact.id] == true;
+    }).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        // Search bar
+        Padding(
+          padding: EdgeInsets.all(16),
+          child: TextField(
+            decoration: InputDecoration(
+              hintText: 'Search contacts...',
+              prefixIcon: Icon(Icons.search),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            onChanged: (value) {
+              setState(() {
+                _searchQuery = value;
+              });
+            },
+          ),
+        ),
+        
+        // Select all/none buttons
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              ElevatedButton.icon(
+                onPressed: () {
+                  setState(() {
+                    for (final contact in _filteredContacts) {
+                      _selectedContacts[contact.id] = true;
+                    }
+                  });
+                },
+                icon: Icon(Icons.select_all),
+                label: Text('Select All'),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
+              ),
+              SizedBox(width: 8),
+              ElevatedButton.icon(
+                onPressed: () {
+                  setState(() {
+                    _selectedContacts.updateAll((key, value) => false);
+                  });
+                },
+                icon: Icon(Icons.clear),
+                label: Text('Clear All'),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.grey),
+              ),
+              Spacer(),
+              Text(
+                '${_selectedContactsList.length} selected',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+        ),
+        
+        SizedBox(height: 8),
+        
+        // Contact list
+        Expanded(
+          child: ListView.builder(
+            itemCount: _filteredContacts.length,
+            itemBuilder: (context, index) {
+              final contact = _filteredContacts[index];
+              final isSelected = _selectedContacts[contact.id] ?? false;
+              
+              return CheckboxListTile(
+                title: Text(contact.displayName.isEmpty ? 'Unknown' : contact.displayName),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (contact.phones.isNotEmpty)
+                      Text('📞 ${contact.phones.first.number}'),
+                    if (contact.emails.isNotEmpty)
+                      Text('📧 ${contact.emails.first.address}'),
+                  ],
+                ),
+                value: isSelected,
+                onChanged: (bool? value) {
+                  setState(() {
+                    _selectedContacts[contact.id] = value ?? false;
+                  });
+                },
+                activeColor: Colors.teal,
+              );
+            },
+          ),
+        ),
+        
+        // Import button
+        Padding(
+          padding: EdgeInsets.all(16),
+          child: SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _selectedContactsList.isEmpty 
+                ? null 
+                : () => widget.onContactsSelected(_selectedContactsList),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.teal,
+                padding: EdgeInsets.symmetric(vertical: 12),
+              ),
+              child: Text(
+                'Import ${_selectedContactsList.length} Contacts',
+                style: TextStyle(fontSize: 16, color: Colors.white),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

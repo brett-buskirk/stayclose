@@ -122,3 +122,8 @@ dist/
 # Dependencies
 node_modules/
 EOF < /dev/null
+
+# Keystore files
+/key.properties
+*.jks
+*.pem

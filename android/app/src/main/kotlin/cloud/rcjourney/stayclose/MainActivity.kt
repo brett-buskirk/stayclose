@@ -1,4 +1,4 @@
-package com.example.stayclose_flutter
+package cloud.rcjourney.stayclose
 
 import io.flutter.embedding.android.FlutterActivity
 
