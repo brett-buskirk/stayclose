@@ -1,4 +1,3 @@
-
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
@@ -16,10 +15,13 @@ class NotificationService {
     try {
       tz_data.initializeTimeZones();
       tz.setLocalLocation(tz.getLocation('America/New_York'));
+      print('Timezone set to: America/New_York');
     } catch (e) {
       print('Timezone initialization failed: $e');
       tz.setLocalLocation(tz.local);
+      print('Timezone set to local: ${tz.local}');
     }
+    
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('@mipmap/ic_launcher');
 
@@ -36,6 +38,10 @@ class NotificationService {
     );
 
     await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+    print('Flutter local notifications initialized');
+    
+    // Create notification channels explicitly
+    await _createNotificationChannels();
     
     // Request permissions for iOS
     await flutterLocalNotificationsPlugin
@@ -47,9 +53,62 @@ class NotificationService {
         );
     
     // Request permissions for Android
-    await flutterLocalNotificationsPlugin
+    final androidPermission = await flutterLocalNotificationsPlugin
         .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
         ?.requestNotificationsPermission();
+    print('Android notification permission result: $androidPermission');
+  }
+
+  Future<void> _createNotificationChannels() async {
+    final androidImplementation = flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+    
+    if (androidImplementation != null) {
+      // Create the daily reminder channel with maximum priority settings
+      const AndroidNotificationChannel dailyChannel = AndroidNotificationChannel(
+        'daily_contact_reminder',
+        'Daily Kindred Reminder',
+        description: 'Daily reminder to check your kindred of the day',
+        importance: Importance.max,
+        enableVibration: true,
+        enableLights: true,
+        showBadge: true,
+        playSound: true,
+        sound: RawResourceAndroidNotificationSound('notification'),
+      );
+      
+      // Create the general reminders channel with maximum priority settings
+      const AndroidNotificationChannel remindersChannel = AndroidNotificationChannel(
+        'stayclose_reminders',
+        'StayClose Reminders',
+        description: 'Daily contact reminders and important date notifications',
+        importance: Importance.max,
+        enableVibration: true,
+        enableLights: true,
+        showBadge: true,
+        playSound: true,
+        sound: RawResourceAndroidNotificationSound('notification'),
+      );
+      
+      await androidImplementation.createNotificationChannel(dailyChannel);
+      await androidImplementation.createNotificationChannel(remindersChannel);
+      print('Created notification channels: daily_contact_reminder, stayclose_reminders');
+      
+      // Check exact alarm permission status
+      try {
+        final hasExactAlarmPermission = await androidImplementation.canScheduleExactNotifications();
+        print('Exact alarm permission granted: $hasExactAlarmPermission');
+        
+        if (hasExactAlarmPermission != true) {
+          print('WARNING: Exact alarm permission not granted - scheduled notifications may not work');
+          // Request exact alarm permission
+          await androidImplementation.requestExactAlarmsPermission();
+          print('Requested exact alarms permission');
+        }
+      } catch (e) {
+        print('Error checking exact alarm permissions: $e');
+      }
+    }
   }
 
   Future<void> showNotification(
@@ -89,34 +148,56 @@ class NotificationService {
   }
 
   Future<void> scheduleDailyContactReminder() async {
-    // Get user's preferred notification time, default to 9:00 AM
-    final prefs = await SharedPreferences.getInstance();
-    final hour = prefs.getInt('notification_hour') ?? 9;
-    final minute = prefs.getInt('notification_minute') ?? 0;
+    try {
+      // Get user's preferred notification time, default to 9:00 AM
+      final prefs = await SharedPreferences.getInstance();
+      final hour = prefs.getInt('notification_hour') ?? 9;
+      final minute = prefs.getInt('notification_minute') ?? 0;
 
-    await flutterLocalNotificationsPlugin.zonedSchedule(
-      1, // ID for daily kindred reminder
-      'Time to reach out! 📱',
-      'Check who\'s your kindred of the day',
-      _nextInstanceOfTime(hour, minute),
-      const NotificationDetails(
-        android: AndroidNotificationDetails(
-          'daily_contact_reminder',
-          'Daily Kindred Reminder',
-          channelDescription: 'Daily reminder to check your kindred of the day',
-          importance: Importance.high,
-          priority: Priority.high,
-          icon: '@mipmap/ic_launcher',
+      await flutterLocalNotificationsPlugin.zonedSchedule(
+        1, // ID for daily kindred reminder
+        'Time to reach out! 📱',
+        "Check who's your kindred of the day",
+        _nextInstanceOfTime(hour, minute),
+        const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'daily_contact_reminder',
+            'Daily Kindred Reminder',
+            channelDescription: 'Daily reminder to check your kindred of the day',
+            importance: Importance.max,
+            priority: Priority.max,
+            icon: '@mipmap/ic_launcher',
+            enableVibration: true,
+            enableLights: true,
+            playSound: true,
+            showWhen: true,
+            fullScreenIntent: true,
+            category: AndroidNotificationCategory.reminder,
+          ),
+          iOS: DarwinNotificationDetails(
+            presentAlert: true,
+            presentBadge: true,
+            presentSound: true,
+          ),
         ),
-        iOS: DarwinNotificationDetails(
-          presentAlert: true,
-          presentBadge: true,
-          presentSound: true,
-        ),
-      ),
-      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
-      matchDateTimeComponents: DateTimeComponents.time,
-    );
+        uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+        matchDateTimeComponents: DateTimeComponents.time,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      );
+      final scheduledTime = _nextInstanceOfTime(hour, minute);
+      print('Daily nudge scheduled successfully!');
+      print('  - Target time: ${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}');
+      print('  - Next scheduled: $scheduledTime');
+      print('  - Current time: ${tz.TZDateTime.now(tz.local)}');
+      print('  - Time until nudge: ${scheduledTime.difference(tz.TZDateTime.now(tz.local))}');
+    } catch (e) {
+      print('Failed to schedule daily nudge: $e');
+      // For debugging: Check if it's an exact alarm permission issue
+      if (e.toString().contains('exact_alarms_not_permitted')) {
+        print('HINT: User needs to enable "Alarms & reminders" permission for this app in device settings');
+      }
+      rethrow; // Re-throw so calling code can handle it
+    }
   }
 
   // Method called from settings to update the daily notification
@@ -184,8 +265,8 @@ class NotificationService {
         : '📅 Upcoming: ${importantDate.name}';
     
     final body = isOnDay
-        ? 'Today is ${contact.name}\'s ${importantDate.name}. Don\'t forget to reach out!'
-        : '${contact.name}\'s ${importantDate.name} is in 3 days (${importantDate.date.day}/${importantDate.date.month})';
+        ? "Today is ${contact.name}'s ${importantDate.name}. Don't forget to reach out!"
+        : "${contact.name}'s ${importantDate.name} is in 3 days (${importantDate.date.day}/${importantDate.date.month})";
 
     await flutterLocalNotificationsPlugin.zonedSchedule(
       id,

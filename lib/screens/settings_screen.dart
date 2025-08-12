@@ -50,9 +50,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _nudgeTime = time;
       });
 
-      // Reschedule notifications with new time
-      await _notificationService.scheduleDailyContactNotification();
-      
+      // Always show success message for time update
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -61,8 +59,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         );
       }
+
+      // Try to reschedule notifications, but don't fail the whole operation if this fails
+      try {
+        await _notificationService.scheduleDailyContactNotification();
+      } catch (notificationError) {
+        print('Failed to reschedule notifications: $notificationError');
+        // Show helpful message about permissions
+        if (mounted && notificationError.toString().contains('exact_alarms_not_permitted')) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Time saved! To receive scheduled nudges, enable "Alarms & reminders" for StayClose in device settings.'),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 6),
+              action: SnackBarAction(
+                label: 'OK',
+                textColor: Colors.white,
+                onPressed: () {
+                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                },
+              ),
+            ),
+          );
+        } else if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Time saved, but nudge scheduling may need device permissions'),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 4),
+            ),
+          );
+        }
+      }
     } catch (e) {
-      print('Error saving notification time: $e');
+      print('Error saving nudge time: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -234,6 +264,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       }
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
