@@ -50,5 +50,11 @@
 		<string>fetch</string>
 		<string>remote-notification</string>
 	</array>
+	
+	<!-- Image picker permissions -->
+	<key>NSCameraUsageDescription</key>
+	<string>StayClose needs camera access to take profile photos for your contacts.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>StayClose needs photo library access to select profile photos for your contacts.</string>
 </dict>
 </plist>

@@ -23,7 +23,12 @@ class ImageService {
         imageQuality: 85,
       );
 
-      if (pickedFile == null) return null;
+      if (pickedFile == null) {
+        print('Image picker cancelled by user');
+        return null;
+      }
+
+      print('Image picked: ${pickedFile.path}');
 
       // Crop image to square
       final CroppedFile? croppedFile = await ImageCropper().cropImage(
@@ -49,36 +54,76 @@ class ImageService {
         ],
       );
 
-      if (croppedFile == null) return null;
+      if (croppedFile == null) {
+        print('Image cropping cancelled by user');
+        return null;
+      }
+
+      print('Image cropped: ${croppedFile.path}');
 
       // Save to app directory
       final String savedPath = await _saveImageToAppDirectory(croppedFile.path);
+      print('Image saved to: $savedPath');
       return savedPath;
-    } catch (e) {
+    } catch (e, stackTrace) {
       print('Error picking/cropping image: $e');
+      print('Stack trace: $stackTrace');
+      
+      // Show user-friendly error
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to process image. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
       return null;
     }
   }
 
   Future<String> _saveImageToAppDirectory(String sourcePath) async {
-    // Get app directory
-    final Directory appDir = await getApplicationDocumentsDirectory();
-    final Directory contactImagesDir = Directory(path.join(appDir.path, 'contact_images'));
-    
-    // Create directory if it doesn't exist
-    if (!await contactImagesDir.exists()) {
-      await contactImagesDir.create(recursive: true);
+    try {
+      // Get app directory
+      final Directory appDir = await getApplicationDocumentsDirectory();
+      final Directory contactImagesDir = Directory(path.join(appDir.path, 'contact_images'));
+      
+      print('App directory: ${appDir.path}');
+      print('Contact images directory: ${contactImagesDir.path}');
+      
+      // Create directory if it doesn't exist
+      if (!await contactImagesDir.exists()) {
+        await contactImagesDir.create(recursive: true);
+        print('Created contact images directory');
+      }
+
+      // Generate unique filename
+      final String fileName = '${_uuid.v4()}.jpg';
+      final String targetPath = path.join(contactImagesDir.path, fileName);
+      
+      print('Target path: $targetPath');
+
+      // Copy file to app directory
+      final File sourceFile = File(sourcePath);
+      if (!await sourceFile.exists()) {
+        throw Exception('Source file does not exist: $sourcePath');
+      }
+      
+      await sourceFile.copy(targetPath);
+      
+      // Verify the file was copied
+      final File targetFile = File(targetPath);
+      if (!await targetFile.exists()) {
+        throw Exception('Failed to copy file to target location');
+      }
+      
+      print('Successfully saved image to: $targetPath');
+      return targetPath;
+    } catch (e, stackTrace) {
+      print('Error saving image to app directory: $e');
+      print('Stack trace: $stackTrace');
+      rethrow;
     }
-
-    // Generate unique filename
-    final String fileName = '${_uuid.v4()}.jpg';
-    final String targetPath = path.join(contactImagesDir.path, fileName);
-
-    // Copy file to app directory
-    final File sourceFile = File(sourcePath);
-    await sourceFile.copy(targetPath);
-
-    return targetPath;
   }
 
   Future<void> deleteImage(String? imagePath) async {
@@ -148,12 +193,19 @@ class ImageService {
   }) {
     if (imagePath != null && imagePath.isNotEmpty) {
       final File imageFile = File(imagePath);
-      if (imageFile.existsSync()) {
-        return CircleAvatar(
-          radius: radius,
-          backgroundImage: FileImage(imageFile),
-          backgroundColor: backgroundColor,
-        );
+      try {
+        if (imageFile.existsSync()) {
+          return CircleAvatar(
+            radius: radius,
+            backgroundImage: FileImage(imageFile),
+            backgroundColor: backgroundColor,
+            onBackgroundImageError: (exception, stackTrace) {
+              print('Error loading image: $exception');
+            },
+          );
+        }
+      } catch (e) {
+        print('Error checking image file: $e');
       }
     }
 
