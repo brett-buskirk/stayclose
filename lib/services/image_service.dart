@@ -1,10 +1,11 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:image_cropper/image_cropper.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:uuid/uuid.dart';
+import '../screens/image_crop_screen.dart';
 
 class ImageService {
   final ImagePicker _picker = ImagePicker();
@@ -30,39 +31,22 @@ class ImageService {
 
       print('Image picked: ${pickedFile.path}');
 
-      // Crop image to square
-      final CroppedFile? croppedFile = await ImageCropper().cropImage(
-        sourcePath: pickedFile.path,
-        aspectRatio: CropAspectRatio(ratioX: 1, ratioY: 1),
-        maxWidth: 512,
-        maxHeight: 512,
-        compressFormat: ImageCompressFormat.jpg,
-        compressQuality: 85,
-        uiSettings: [
-          AndroidUiSettings(
-            toolbarTitle: 'Crop Contact Photo',
-            toolbarColor: Colors.teal,
-            toolbarWidgetColor: Colors.white,
-            initAspectRatio: CropAspectRatioPreset.square,
-            lockAspectRatio: true,
-          ),
-          IOSUiSettings(
-            title: 'Crop Contact Photo',
-            aspectRatioLockEnabled: true,
-            resetAspectRatioEnabled: false,
-          ),
-        ],
+      // Navigate to custom crop screen
+      final dynamic croppedData = await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => ImageCropScreen(imagePath: pickedFile.path),
+        ),
       );
 
-      if (croppedFile == null) {
+      if (croppedData == null) {
         print('Image cropping cancelled by user');
         return null;
       }
 
-      print('Image cropped: ${croppedFile.path}');
+      print('Image cropped successfully, type: ${croppedData.runtimeType}');
 
-      // Save to app directory
-      final String savedPath = await _saveImageToAppDirectory(croppedFile.path);
+      // Save cropped data to app directory
+      final String savedPath = await _saveCroppedDataToAppDirectory(croppedData);
       print('Image saved to: $savedPath');
       return savedPath;
     } catch (e, stackTrace) {
@@ -79,6 +63,56 @@ class ImageService {
         );
       }
       return null;
+    }
+  }
+
+  Future<String> _saveCroppedDataToAppDirectory(dynamic imageData) async {
+    try {
+      // Get app directory
+      final Directory appDir = await getApplicationDocumentsDirectory();
+      final Directory contactImagesDir = Directory(path.join(appDir.path, 'contact_images'));
+      
+      print('App directory: ${appDir.path}');
+      print('Contact images directory: ${contactImagesDir.path}');
+      
+      // Create directory if it doesn't exist
+      if (!await contactImagesDir.exists()) {
+        await contactImagesDir.create(recursive: true);
+        print('Created contact images directory');
+      }
+
+      // Generate unique filename
+      final String fileName = '${_uuid.v4()}.jpg';
+      final String targetPath = path.join(contactImagesDir.path, fileName);
+      
+      print('Target path: $targetPath');
+
+      // Write image data to file
+      final File targetFile = File(targetPath);
+      if (imageData is Uint8List) {
+        await targetFile.writeAsBytes(imageData);
+      } else if (imageData.runtimeType.toString() == 'CropSuccess') {
+        // Extract bytes from CropSuccess object (crop_your_image package)
+        final Uint8List bytes = imageData.croppedImage;
+        await targetFile.writeAsBytes(bytes);
+        print('Successfully saved cropped image (${bytes.length} bytes)');
+      } else {
+        // Handle different types that crop_your_image might return
+        print('Unexpected data type: ${imageData.runtimeType}');
+        throw Exception('Unsupported image data type: ${imageData.runtimeType}');
+      }
+      
+      // Verify the file was created
+      if (!await targetFile.exists()) {
+        throw Exception('Failed to save file to target location');
+      }
+      
+      print('Successfully saved image to: $targetPath');
+      return targetPath;
+    } catch (e, stackTrace) {
+      print('Error saving image data to app directory: $e');
+      print('Stack trace: $stackTrace');
+      rethrow;
     }
   }
 
@@ -143,7 +177,7 @@ class ImageService {
     required BuildContext context,
     required Function(String?) onImageSelected,
   }) async {
-    showModalBottomSheet(
+    final ImageSource? selectedSource = await showModalBottomSheet<ImageSource>(
       context: context,
       builder: (BuildContext context) {
         return SafeArea(
@@ -152,25 +186,15 @@ class ImageService {
               ListTile(
                 leading: Icon(Icons.photo_library, color: Colors.teal),
                 title: Text('Choose from Gallery'),
-                onTap: () async {
-                  Navigator.pop(context);
-                  final imagePath = await pickAndCropImage(
-                    context: context,
-                    source: ImageSource.gallery,
-                  );
-                  onImageSelected(imagePath);
+                onTap: () {
+                  Navigator.pop(context, ImageSource.gallery);
                 },
               ),
               ListTile(
                 leading: Icon(Icons.photo_camera, color: Colors.teal),
                 title: Text('Take Photo'),
-                onTap: () async {
-                  Navigator.pop(context);
-                  final imagePath = await pickAndCropImage(
-                    context: context,
-                    source: ImageSource.camera,
-                  );
-                  onImageSelected(imagePath);
+                onTap: () {
+                  Navigator.pop(context, ImageSource.camera);
                 },
               ),
               ListTile(
@@ -183,6 +207,14 @@ class ImageService {
         );
       },
     );
+
+    if (selectedSource != null) {
+      final imagePath = await pickAndCropImage(
+        context: context,
+        source: selectedSource,
+      );
+      onImageSelected(imagePath);
+    }
   }
 
   Widget buildContactAvatar({

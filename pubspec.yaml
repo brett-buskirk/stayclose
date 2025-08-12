@@ -14,7 +14,7 @@ dependencies:
   uuid: ^4.4.0
   timezone: ^0.9.2
   image_picker: ^1.0.4
-  image_cropper: ^7.0.5
+  crop_your_image: ^2.0.0
   path_provider: ^2.1.1
   path: ^1.8.3
 
