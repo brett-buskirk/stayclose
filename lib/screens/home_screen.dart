@@ -4,6 +4,7 @@ import 'package:stayclose/models/contact.dart';
 import 'package:stayclose/screens/contact_list_screen.dart';
 import 'package:stayclose/screens/add_edit_contact_screen.dart';
 import 'package:stayclose/screens/settings_screen.dart';
+import 'package:stayclose/screens/welcome_screen.dart';
 import 'package:stayclose/services/contact_storage.dart';
 import 'package:stayclose/services/daily_contact_service.dart';
 import 'package:stayclose/services/notification_service.dart';
@@ -11,6 +12,7 @@ import 'package:stayclose/services/image_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_contacts/flutter_contacts.dart' as flutter_contacts;
 import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -56,6 +58,9 @@ class _HomeScreenState extends State<HomeScreen> {
         _isLoading = false;
       });
       
+      // Check if we should show welcome screen after loading contacts
+      await _checkFirstTime();
+      
       // Reschedule notifications when contacts change
       try {
         await _notificationService.scheduleImportantDateNotifications();
@@ -67,6 +72,9 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() {
         _isLoading = false;
       });
+      
+      // Still check for first time even if loading failed
+      await _checkFirstTime();
     }
   }
 
@@ -167,6 +175,40 @@ class _HomeScreenState extends State<HomeScreen> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => SettingsScreen(),
+      ),
+    );
+  }
+
+  Future<void> _checkFirstTime() async {
+    final prefs = await SharedPreferences.getInstance();
+    final hasSeenWelcome = prefs.getBool('has_seen_welcome') ?? false;
+    
+    // Show welcome screen if first time AND no contacts
+    if (!hasSeenWelcome && _contacts.isEmpty && !_isLoading) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showWelcomeScreen();
+      });
+    }
+  }
+
+  Future<void> _showWelcomeScreen() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => WelcomeScreen(
+          onComplete: () async {
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setBool('has_seen_welcome', true);
+            Navigator.of(context).pop();
+          },
+        ),
+      ),
+    );
+  }
+
+  void _showInfoDialog() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => WelcomeScreen(),
       ),
     );
   }
@@ -526,6 +568,11 @@ class _HomeScreenState extends State<HomeScreen> {
         foregroundColor: Colors.white,
         actions: [
           IconButton(
+            onPressed: _showInfoDialog,
+            icon: Icon(Icons.info_outline),
+            tooltip: 'About StayClose',
+          ),
+          IconButton(
             onPressed: _navigateToContactsList,
             icon: Icon(Icons.people),
             tooltip: 'All Kindred',
@@ -589,32 +636,59 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: _isLoading
           ? Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              child: Column(
-                children: [
-                  SizedBox(height: 20),
-                  Container(
-                    width: 60,
-                    height: 60,
-                    child: Image.asset(
-                      'assets/favicon.png',
-                      fit: BoxFit.contain,
-                    ),
+          : _dailyContact == null 
+              ? Container(
+                  width: double.infinity,
+                  height: MediaQuery.of(context).size.height - kToolbarHeight,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 60,
+                        height: 60,
+                        child: Image.asset(
+                          'assets/favicon.png',
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                      SizedBox(height: 10),
+                      Text(
+                        'Kindred of the Day',
+                        style: Theme.of(context).textTheme.headlineSmall,
+                        textAlign: TextAlign.center,
+                      ),
+                      SizedBox(height: 20),
+                      _buildDailyContactCard(),
+                    ],
                   ),
-                  SizedBox(height: 10),
-                  Text(
-                    'Kindred of the Day',
-                    style: Theme.of(context).textTheme.headlineSmall,
-                    textAlign: TextAlign.center,
+                )
+              : SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      SizedBox(height: 20),
+                      Container(
+                        width: 60,
+                        height: 60,
+                        child: Image.asset(
+                          'assets/favicon.png',
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                      SizedBox(height: 10),
+                      Text(
+                        'Kindred of the Day',
+                        style: Theme.of(context).textTheme.headlineSmall,
+                        textAlign: TextAlign.center,
+                      ),
+                      SizedBox(height: 20),
+                      _buildDailyContactCard(),
+                      SizedBox(height: 20),
+                      _buildActionButtons(),
+                      SizedBox(height: 40),
+                    ],
                   ),
-                  SizedBox(height: 20),
-                  _buildDailyContactCard(),
-                  SizedBox(height: 20),
-                  _buildActionButtons(),
-                  SizedBox(height: 40),
-                ],
-              ),
-            ),
+                ),
       floatingActionButton: _contacts.isNotEmpty ? FloatingActionButton(
         onPressed: _navigateToAddContact,
         backgroundColor: Colors.teal,
