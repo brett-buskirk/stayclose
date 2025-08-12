@@ -266,7 +266,7 @@ class NotificationService {
     
     final body = isOnDay
         ? "Today is ${contact.name}'s ${importantDate.name}. Don't forget to reach out!"
-        : "${contact.name}'s ${importantDate.name} is in 3 days (${importantDate.date.day}/${importantDate.date.month})";
+        : "${contact.name}'s ${importantDate.name} is in 3 days (${importantDate.date.month}/${importantDate.date.day})";
 
     await flutterLocalNotificationsPlugin.zonedSchedule(
       id,

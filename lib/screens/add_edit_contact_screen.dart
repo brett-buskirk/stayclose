@@ -249,7 +249,7 @@ class _AddEditContactScreenState extends State<AddEditContactScreen> {
                       leading: Icon(Icons.event, color: Colors.orange),
                       title: Text(date.name),
                       subtitle: Text(
-                        '${date.date.day}/${date.date.month}/${date.date.year}',
+                        '${date.date.month}/${date.date.day}/${date.date.year}',
                       ),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -362,7 +362,7 @@ class _ImportantDateDialogState extends State<_ImportantDateDialog> {
                 children: [
                   Icon(Icons.calendar_today),
                   SizedBox(width: 16),
-                  Text('${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}'),
+                  Text('${_selectedDate.month}/${_selectedDate.day}/${_selectedDate.year}'),
                 ],
               ),
             ),

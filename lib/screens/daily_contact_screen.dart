@@ -113,7 +113,7 @@ class DailyContactScreen extends StatelessWidget {
                                   SizedBox(width: 8),
                                   Text('${date.name}: '),
                                   Text(
-                                    '${date.date.day}/${date.date.month}/${date.date.year}',
+                                    '${date.date.month}/${date.date.day}/${date.date.year}',
                                     style: TextStyle(fontWeight: FontWeight.w500),
                                   ),
                                 ],
