@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:stayclose/models/contact.dart';
 import 'package:stayclose/services/contact_storage.dart';
+import 'package:stayclose/services/image_service.dart';
 import 'package:uuid/uuid.dart';
 
 class AddEditContactScreen extends StatefulWidget {
@@ -16,9 +17,11 @@ class AddEditContactScreen extends StatefulWidget {
 class _AddEditContactScreenState extends State<AddEditContactScreen> {
   final _formKey = GlobalKey<FormState>();
   final ContactStorage _contactStorage = ContactStorage();
+  final ImageService _imageService = ImageService();
   late String _name;
   late String _phone;
   late String _email;
+  String? _imagePath;
   List<ImportantDate> _importantDates = [];
 
   @override
@@ -27,6 +30,7 @@ class _AddEditContactScreenState extends State<AddEditContactScreen> {
     _name = widget.contact?.name ?? '';
     _phone = widget.contact?.phone ?? '';
     _email = widget.contact?.email ?? '';
+    _imagePath = widget.contact?.imagePath;
     _importantDates = List.from(widget.contact?.importantDates ?? []);
   }
 
@@ -40,17 +44,24 @@ class _AddEditContactScreenState extends State<AddEditContactScreen> {
           name: _name,
           phone: _phone,
           email: _email,
+          imagePath: _imagePath,
           importantDates: _importantDates,
         );
         contacts.add(newContact);
       } else {
         final index = contacts.indexWhere((c) => c.id == widget.contact!.id);
         if (index != -1) {
+          // If image changed, delete the old one
+          if (widget.contact!.imagePath != _imagePath && widget.contact!.imagePath != null) {
+            await _imageService.deleteImage(widget.contact!.imagePath);
+          }
+          
           contacts[index] = Contact(
             id: widget.contact!.id,
             name: _name,
             phone: _phone,
             email: _email,
+            imagePath: _imagePath,
             importantDates: _importantDates,
           );
         }
@@ -97,6 +108,28 @@ class _AddEditContactScreenState extends State<AddEditContactScreen> {
     });
   }
 
+  void _selectImage() {
+    _imageService.showImageSourceDialog(
+      context: context,
+      onImageSelected: (String? imagePath) {
+        if (imagePath != null) {
+          setState(() {
+            _imagePath = imagePath;
+          });
+        }
+      },
+    );
+  }
+
+  void _removeImage() async {
+    if (_imagePath != null) {
+      await _imageService.deleteImage(_imagePath);
+      setState(() {
+        _imagePath = null;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -113,6 +146,41 @@ class _AddEditContactScreenState extends State<AddEditContactScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Profile Image Section
+                Center(
+                  child: Column(
+                    children: [
+                      _imageService.buildLargeContactAvatar(
+                        imagePath: _imagePath,
+                        contactName: _name,
+                        radius: 60,
+                        onTap: _selectImage,
+                      ),
+                      SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          TextButton.icon(
+                            onPressed: _selectImage,
+                            icon: Icon(Icons.photo_camera, color: Colors.teal),
+                            label: Text('Add Photo'),
+                            style: TextButton.styleFrom(foregroundColor: Colors.teal),
+                          ),
+                          if (_imagePath != null) ...[
+                            SizedBox(width: 16),
+                            TextButton.icon(
+                              onPressed: _removeImage,
+                              icon: Icon(Icons.delete, color: Colors.red),
+                              label: Text('Remove'),
+                              style: TextButton.styleFrom(foregroundColor: Colors.red),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 20),
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),

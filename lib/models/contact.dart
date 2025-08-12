@@ -4,6 +4,7 @@ class Contact {
   String name;
   String phone;
   String email;
+  String? imagePath;
   List<ImportantDate> importantDates;
 
   Contact({
@@ -11,6 +12,7 @@ class Contact {
     required this.name,
     this.phone = '',
     this.email = '',
+    this.imagePath,
     this.importantDates = const [],
   });
 
@@ -18,9 +20,10 @@ class Contact {
     return Contact(
       id: json['id'],
       name: json['name'],
-      phone: json['phone'],
-      email: json['email'],
-      importantDates: (json['importantDates'] as List)
+      phone: json['phone'] ?? '',
+      email: json['email'] ?? '',
+      imagePath: json['imagePath'],
+      importantDates: (json['importantDates'] as List? ?? [])
           .map((e) => ImportantDate.fromJson(e))
           .toList(),
     );
@@ -32,6 +35,7 @@ class Contact {
       'name': name,
       'phone': phone,
       'email': email,
+      'imagePath': imagePath,
       'importantDates': importantDates.map((e) => e.toJson()).toList(),
     };
   }

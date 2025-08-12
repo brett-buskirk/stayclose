@@ -6,6 +6,7 @@ import 'package:stayclose/screens/add_edit_contact_screen.dart';
 import 'package:stayclose/services/contact_storage.dart';
 import 'package:stayclose/services/daily_contact_service.dart';
 import 'package:stayclose/services/notification_service.dart';
+import 'package:stayclose/services/image_service.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -16,6 +17,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final ContactStorage _contactStorage = ContactStorage();
   final DailyContactService _dailyContactService = DailyContactService();
   final NotificationService _notificationService = NotificationService();
+  final ImageService _imageService = ImageService();
   Contact? _dailyContact;
   List<Contact> _contacts = [];
   bool _isLoading = true;
@@ -153,17 +155,10 @@ class _HomeScreenState extends State<HomeScreen> {
         padding: EdgeInsets.all(24),
         child: Column(
           children: [
-            CircleAvatar(
-              radius: 50,
-              backgroundColor: Colors.teal,
-              child: Text(
-                _dailyContact!.name.isNotEmpty ? _dailyContact!.name[0].toUpperCase() : '?',
-                style: TextStyle(
-                  fontSize: 36,
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+            _imageService.buildLargeContactAvatar(
+              imagePath: _dailyContact!.imagePath,
+              contactName: _dailyContact!.name,
+              radius: 60,
             ),
             SizedBox(height: 20),
             Text(

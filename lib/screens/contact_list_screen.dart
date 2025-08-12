@@ -4,6 +4,7 @@ import 'package:stayclose/models/contact.dart';
 import 'package:stayclose/screens/add_edit_contact_screen.dart';
 import 'package:stayclose/services/contact_storage.dart';
 import 'package:stayclose/services/notification_service.dart';
+import 'package:stayclose/services/image_service.dart';
 
 class ContactListScreen extends StatefulWidget {
   @override
@@ -13,6 +14,7 @@ class ContactListScreen extends StatefulWidget {
 class _ContactListScreenState extends State<ContactListScreen> {
   final ContactStorage _contactStorage = ContactStorage();
   final NotificationService _notificationService = NotificationService();
+  final ImageService _imageService = ImageService();
   List<Contact> _contacts = [];
 
   @override
@@ -77,12 +79,10 @@ class _ContactListScreenState extends State<ContactListScreen> {
       margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       elevation: 2,
       child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: Colors.teal,
-          child: Text(
-            contact.name.isNotEmpty ? contact.name[0].toUpperCase() : '?',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-          ),
+        leading: _imageService.buildContactAvatar(
+          imagePath: contact.imagePath,
+          contactName: contact.name,
+          radius: 25,
         ),
         title: Text(
           contact.name,
