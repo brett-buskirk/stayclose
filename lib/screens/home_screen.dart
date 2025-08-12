@@ -8,6 +8,7 @@ import 'package:stayclose/services/contact_storage.dart';
 import 'package:stayclose/services/daily_contact_service.dart';
 import 'package:stayclose/services/notification_service.dart';
 import 'package:stayclose/services/image_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -77,6 +78,61 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _refreshDailyContact() async {
     await _dailyContactService.resetDailyContact();
     await _loadContactsAndSelectDaily();
+  }
+
+  Future<void> _makePhoneCall(String phoneNumber) async {
+    final Uri phoneUri = Uri(scheme: 'tel', path: phoneNumber);
+    try {
+      if (await canLaunchUrl(phoneUri)) {
+        await launchUrl(phoneUri);
+      } else {
+        _showErrorDialog('Unable to make phone call', 'Phone app not available on this device');
+      }
+    } catch (e) {
+      _showErrorDialog('Error making phone call', e.toString());
+    }
+  }
+
+  Future<void> _sendSMS(String phoneNumber) async {
+    final Uri smsUri = Uri(scheme: 'sms', path: phoneNumber);
+    try {
+      if (await canLaunchUrl(smsUri)) {
+        await launchUrl(smsUri);
+      } else {
+        _showErrorDialog('Unable to send SMS', 'SMS app not available on this device');
+      }
+    } catch (e) {
+      _showErrorDialog('Error sending SMS', e.toString());
+    }
+  }
+
+  Future<void> _sendEmail(String emailAddress) async {
+    final Uri emailUri = Uri(scheme: 'mailto', path: emailAddress);
+    try {
+      if (await canLaunchUrl(emailUri)) {
+        await launchUrl(emailUri);
+      } else {
+        _showErrorDialog('Unable to send email', 'Email app not available on this device');
+      }
+    } catch (e) {
+      _showErrorDialog('Error sending email', e.toString());
+    }
+  }
+
+  void _showErrorDialog(String title, String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _navigateToContactsList() async {
@@ -253,28 +309,7 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               if (_dailyContact!.phone.isNotEmpty)
                 ElevatedButton.icon(
-                  onPressed: () {
-                    showDialog(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: Text('Call ${_dailyContact!.name}'),
-                        content: Text('Would you like to call ${_dailyContact!.phone}?'),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: Text('Cancel'),
-                          ),
-                          ElevatedButton(
-                            onPressed: () {
-                              Navigator.pop(context);
-                              _copyToClipboard(context, _dailyContact!.phone, 'Phone number');
-                            },
-                            child: Text('Copy Number'),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
+                  onPressed: () => _makePhoneCall(_dailyContact!.phone),
                   icon: Icon(Icons.phone),
                   label: Text('Call'),
                   style: ElevatedButton.styleFrom(
@@ -282,62 +317,19 @@ class _HomeScreenState extends State<HomeScreen> {
                     foregroundColor: Colors.white,
                   ),
                 ),
-              ElevatedButton.icon(
-                onPressed: () {
-                  showDialog(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: Text('Text ${_dailyContact!.name}'),
-                      content: Text('Send a message to stay in touch!'),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: Text('Cancel'),
-                        ),
-                        ElevatedButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                            if (_dailyContact!.phone.isNotEmpty) {
-                              _copyToClipboard(context, _dailyContact!.phone, 'Phone number');
-                            }
-                          },
-                          child: Text('Copy Number'),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-                icon: Icon(Icons.message),
-                label: Text('Text'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  foregroundColor: Colors.white,
+              if (_dailyContact!.phone.isNotEmpty)
+                ElevatedButton.icon(
+                  onPressed: () => _sendSMS(_dailyContact!.phone),
+                  icon: Icon(Icons.message),
+                  label: Text('Text'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                  ),
                 ),
-              ),
               if (_dailyContact!.email.isNotEmpty)
                 ElevatedButton.icon(
-                  onPressed: () {
-                    showDialog(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: Text('Email ${_dailyContact!.name}'),
-                        content: Text('Would you like to email ${_dailyContact!.email}?'),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: Text('Cancel'),
-                          ),
-                          ElevatedButton(
-                            onPressed: () {
-                              Navigator.pop(context);
-                              _copyToClipboard(context, _dailyContact!.email, 'Email');
-                            },
-                            child: Text('Copy Email'),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
+                  onPressed: () => _sendEmail(_dailyContact!.email),
                   icon: Icon(Icons.email),
                   label: Text('Email'),
                   style: ElevatedButton.styleFrom(
