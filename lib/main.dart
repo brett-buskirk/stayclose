@@ -1,6 +1,6 @@
 
 import 'package:flutter/material.dart';
-import 'package:stayclose/screens/contact_list_screen.dart';
+import 'package:stayclose/screens/home_screen.dart';
 
 void main() {
   runApp(MyApp());
@@ -39,7 +39,7 @@ class MyApp extends StatelessWidget {
           foregroundColor: Colors.white,
         ),
       ),
-      home: ContactListScreen(),
+      home: HomeScreen(),
     );
   }
 }

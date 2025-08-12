@@ -2,9 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:stayclose/models/contact.dart';
 import 'package:stayclose/screens/add_edit_contact_screen.dart';
-import 'package:stayclose/screens/daily_contact_screen.dart';
 import 'package:stayclose/services/contact_storage.dart';
-import 'package:stayclose/services/daily_contact_service.dart';
 import 'package:stayclose/services/notification_service.dart';
 
 class ContactListScreen extends StatefulWidget {
@@ -14,27 +12,13 @@ class ContactListScreen extends StatefulWidget {
 
 class _ContactListScreenState extends State<ContactListScreen> {
   final ContactStorage _contactStorage = ContactStorage();
-  final DailyContactService _dailyContactService = DailyContactService();
   final NotificationService _notificationService = NotificationService();
   List<Contact> _contacts = [];
 
   @override
   void initState() {
     super.initState();
-    _initializeServices();
     _loadContacts();
-  }
-
-  Future<void> _initializeServices() async {
-    try {
-      await _notificationService.init();
-      // Schedule notifications after successful initialization
-      await _notificationService.scheduleDailyContactReminder();
-      await _notificationService.scheduleImportantDateNotifications();
-    } catch (e) {
-      print('Notification service initialization failed: $e');
-      // App will continue to work without notifications
-    }
   }
 
   Future<void> _loadContacts() async {
@@ -76,16 +60,6 @@ class _ContactListScreenState extends State<ContactListScreen> {
     }
   }
 
-  Future<void> _showDailyContact() async {
-    final dailyContact = await _dailyContactService.selectDailyContact(_contacts);
-    if (mounted) {
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => DailyContactScreen(contact: dailyContact),
-        ),
-      );
-    }
-  }
 
   Widget _buildContactCard(Contact contact) {
     final upcomingDates = contact.importantDates
@@ -202,16 +176,9 @@ class _ContactListScreenState extends State<ContactListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('StayClose'),
+        title: Text('All Contacts'),
         backgroundColor: Colors.teal,
         foregroundColor: Colors.white,
-        actions: [
-          IconButton(
-            onPressed: _showDailyContact,
-            icon: Icon(Icons.today),
-            tooltip: 'Daily Contact',
-          ),
-        ],
       ),
       body: _contacts.isEmpty
           ? Center(
