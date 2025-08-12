@@ -11,6 +11,7 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   final NotificationService _notificationService = NotificationService();
   TimeOfDay _nudgeTime = TimeOfDay(hour: 9, minute: 0); // Default 9:00 AM
+  TimeOfDay _importantDateTime = TimeOfDay(hour: 9, minute: 0); // Default 9:00 AM
   ThemeMode _currentThemeMode = ThemeMode.system;
   bool _isLoading = true;
 
@@ -25,10 +26,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final prefs = await SharedPreferences.getInstance();
       final hour = prefs.getInt('notification_hour') ?? 9;
       final minute = prefs.getInt('notification_minute') ?? 0;
+      final importantHour = prefs.getInt('important_date_hour') ?? 9;
+      final importantMinute = prefs.getInt('important_date_minute') ?? 0;
       final themeModeIndex = prefs.getInt('theme_mode') ?? 0;
       
       setState(() {
         _nudgeTime = TimeOfDay(hour: hour, minute: minute);
+        _importantDateTime = TimeOfDay(hour: importantHour, minute: importantMinute);
         _currentThemeMode = ThemeMode.values[themeModeIndex];
         _isLoading = false;
       });
@@ -104,6 +108,54 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  Future<void> _saveImportantDateTime(TimeOfDay time) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('important_date_hour', time.hour);
+      await prefs.setInt('important_date_minute', time.minute);
+      
+      setState(() {
+        _importantDateTime = time;
+      });
+
+      // Always show success message for time update
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Important date notification time updated to ${time.format(context)}'),
+            backgroundColor: Colors.teal,
+          ),
+        );
+      }
+
+      // Try to reschedule important date notifications
+      try {
+        await _notificationService.scheduleImportantDateNotifications();
+      } catch (notificationError) {
+        print('Failed to reschedule important date notifications: $notificationError');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Time saved, but notification scheduling may need device permissions'),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 4),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('Error saving important date time: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to update important date notification time'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   Future<void> _selectTime() async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
@@ -122,6 +174,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     if (picked != null && picked != _nudgeTime) {
       await _saveNudgeTime(picked);
+    }
+  }
+
+  Future<void> _selectImportantDateTime() async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: _importantDateTime,
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+              primary: Colors.orange,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null && picked != _importantDateTime) {
+      await _saveImportantDateTime(picked);
     }
   }
 
@@ -316,6 +389,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           subtitle: Text('Test your nudge settings'),
                           trailing: Icon(Icons.send),
                           onTap: _testNotification,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                SizedBox(height: 20),
+                Card(
+                  child: Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Important Date Notifications',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.orange,
+                          ),
+                        ),
+                        SizedBox(height: 16),
+                        Text(
+                          'Set when you\'d like to receive notifications for birthdays, anniversaries, and other important dates',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                        SizedBox(height: 20),
+                        ListTile(
+                          leading: Icon(Icons.event_note, color: Colors.orange),
+                          title: Text('Important Date Time'),
+                          subtitle: Text(_importantDateTime.format(context)),
+                          trailing: Icon(Icons.chevron_right),
+                          onTap: _selectImportantDateTime,
                         ),
                       ],
                     ),

@@ -28,9 +28,11 @@
 - **Welcome Experience**: Beautiful 5-page onboarding for first-time users
 
 ### 🔔 Notifications & Settings
-- **Customizable Daily Reminders**: Set your preferred notification time (default 9:00 AM)
+- **Personalized Daily Nudges**: Daily reminders with specific kindred names and custom timing
+- **Detailed Important Date Alerts**: Rich notifications with contact info for birthdays and anniversaries
+- **Dual Time Settings**: Separate customizable times for daily nudges and important date notifications
+- **Advance Warnings**: 3-day advance notices for important dates with planning suggestions
 - **Settings Screen**: Easy access to notification preferences and test notifications
-- **Important Date Alerts**: Notifications on special days and 3-day advance warnings
 - **Test Notifications**: Verify your notification settings work correctly
 - **Multiple Channels**: Separate notification categories for different reminder types
 
@@ -158,7 +160,9 @@ flutter build ios --release
 
 5. **Customize Notifications**
    - Access Settings from the menu on any screen
-   - Set your preferred daily reminder time using the time picker
+   - **Daily Nudges**: Set your preferred time for daily kindred reminders
+   - **Important Dates**: Set separate time for birthday/anniversary notifications
+   - **Rich Content**: Notifications include specific names and contact information
    - Test your notification settings with the "Send Test Notification" option
    - Allow notification permissions when prompted
 

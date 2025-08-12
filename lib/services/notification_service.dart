@@ -154,10 +154,23 @@ class NotificationService {
       final hour = prefs.getInt('notification_hour') ?? 9;
       final minute = prefs.getInt('notification_minute') ?? 0;
 
+      // Get today's kindred to include in notification
+      final contacts = await _contactStorage.getContacts();
+      String notificationBody = "Check who's your kindred of the day";
+      
+      if (contacts.isNotEmpty) {
+        // Use the same logic as DailyContactService to get today's kindred
+        final today = DateTime.now();
+        final daysSinceEpoch = today.difference(DateTime(1970, 1, 1)).inDays;
+        final kindredIndex = daysSinceEpoch % contacts.length;
+        final todaysKindred = contacts[kindredIndex];
+        notificationBody = "Your kindred of the day is ${todaysKindred.name}. Time to reach out! 💝";
+      }
+
       await flutterLocalNotificationsPlugin.zonedSchedule(
         1, // ID for daily kindred reminder
         'Time to reach out! 📱',
-        "Check who's your kindred of the day",
+        notificationBody,
         _nextInstanceOfTime(hour, minute),
         const NotificationDetails(
           android: AndroidNotificationDetails(
@@ -260,19 +273,33 @@ class NotificationService {
     DateTime scheduledDate,
     {required bool isOnDay}
   ) async {
-    final title = isOnDay 
-        ? '🎉 ${importantDate.name} Today!'
-        : '📅 Upcoming: ${importantDate.name}';
+    // Get user's preferred important date notification time, default to 9:00 AM
+    final prefs = await SharedPreferences.getInstance();
+    final hour = prefs.getInt('important_date_hour') ?? 9;
+    final minute = prefs.getInt('important_date_minute') ?? 0;
     
-    final body = isOnDay
-        ? "Today is ${contact.name}'s ${importantDate.name}. Don't forget to reach out!"
-        : "${contact.name}'s ${importantDate.name} is in 3 days (${importantDate.date.month}/${importantDate.date.day})";
+    final title = isOnDay 
+        ? '🎉 ${contact.name}: ${importantDate.name} Today!'
+        : '📅 Upcoming: ${contact.name}\'s ${importantDate.name}';
+    
+    String body;
+    if (isOnDay) {
+      body = "Today is ${contact.name}'s ${importantDate.name}! 🎉\n" +
+             "📞 ${contact.phone.isNotEmpty ? contact.phone : 'No phone'}\n" +
+             "✉️ ${contact.email.isNotEmpty ? contact.email : 'No email'}\n" +
+             "Don't forget to reach out and celebrate! 💝";
+    } else {
+      body = "${contact.name}'s ${importantDate.name} is in 3 days (${importantDate.date.month}/${importantDate.date.day}) 📅\n" +
+             "📞 ${contact.phone.isNotEmpty ? contact.phone : 'No phone'}\n" +
+             "✉️ ${contact.email.isNotEmpty ? contact.email : 'No email'}\n" +
+             "Time to plan something special! 💭";
+    }
 
     await flutterLocalNotificationsPlugin.zonedSchedule(
       id,
       title,
       body,
-      _convertToTZDateTime(scheduledDate, 9, 0), // 9:00 AM on the scheduled date
+      _convertToTZDateTime(scheduledDate, hour, minute),
       const NotificationDetails(
         android: AndroidNotificationDetails(
           'important_dates',
