@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:stayclose/models/contact.dart';
 import 'package:stayclose/screens/add_edit_contact_screen.dart';
+import 'package:stayclose/screens/settings_screen.dart';
 import 'package:stayclose/services/contact_storage.dart';
 import 'package:stayclose/services/notification_service.dart';
 import 'package:stayclose/services/image_service.dart';
@@ -179,6 +180,19 @@ class _ContactListScreenState extends State<ContactListScreen> {
         title: Text('All Contacts'),
         backgroundColor: Colors.teal,
         foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => SettingsScreen(),
+                ),
+              );
+            },
+            icon: Icon(Icons.settings),
+            tooltip: 'Settings',
+          ),
+        ],
       ),
       body: _contacts.isEmpty
           ? Center(

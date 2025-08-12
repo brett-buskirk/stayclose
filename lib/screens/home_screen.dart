@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:stayclose/models/contact.dart';
 import 'package:stayclose/screens/contact_list_screen.dart';
 import 'package:stayclose/screens/add_edit_contact_screen.dart';
+import 'package:stayclose/screens/settings_screen.dart';
 import 'package:stayclose/services/contact_storage.dart';
 import 'package:stayclose/services/daily_contact_service.dart';
 import 'package:stayclose/services/notification_service.dart';
@@ -102,6 +103,14 @@ class _HomeScreenState extends State<HomeScreen> {
     if (result == true || result == null) {
       await _loadContactsAndSelectDaily();
     }
+  }
+
+  void _navigateToSettings() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => SettingsScreen(),
+      ),
+    );
   }
 
   Widget _buildDailyContactCard() {
@@ -362,6 +371,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 _refreshDailyContact();
               } else if (value == 'add_contact') {
                 _navigateToAddContact();
+              } else if (value == 'settings') {
+                _navigateToSettings();
               }
             },
             itemBuilder: (context) => [
@@ -382,6 +393,16 @@ class _HomeScreenState extends State<HomeScreen> {
                     Icon(Icons.add, color: Colors.green),
                     SizedBox(width: 8),
                     Text('Add Contact'),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'settings',
+                child: Row(
+                  children: [
+                    Icon(Icons.settings, color: Colors.grey[600]),
+                    SizedBox(width: 8),
+                    Text('Settings'),
                   ],
                 ),
               ),

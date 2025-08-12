@@ -2,6 +2,7 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:stayclose/models/contact.dart';
 import 'package:stayclose/services/contact_storage.dart';
 
@@ -88,11 +89,16 @@ class NotificationService {
   }
 
   Future<void> scheduleDailyContactReminder() async {
+    // Get user's preferred notification time, default to 9:00 AM
+    final prefs = await SharedPreferences.getInstance();
+    final hour = prefs.getInt('notification_hour') ?? 9;
+    final minute = prefs.getInt('notification_minute') ?? 0;
+
     await flutterLocalNotificationsPlugin.zonedSchedule(
       1, // ID for daily contact reminder
       'Time to reach out! 📱',
       'Check who\'s your contact of the day',
-      _nextInstanceOfTime(10, 0), // 10:00 AM daily
+      _nextInstanceOfTime(hour, minute),
       const NotificationDetails(
         android: AndroidNotificationDetails(
           'daily_contact_reminder',
@@ -111,6 +117,14 @@ class NotificationService {
       uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
       matchDateTimeComponents: DateTimeComponents.time,
     );
+  }
+
+  // Method called from settings to update the daily notification
+  Future<void> scheduleDailyContactNotification() async {
+    // Cancel existing daily notification
+    await flutterLocalNotificationsPlugin.cancel(1);
+    // Schedule with new time
+    await scheduleDailyContactReminder();
   }
 
   Future<void> scheduleImportantDateNotifications() async {
@@ -224,6 +238,14 @@ class NotificationService {
       2, // ID for immediate daily contact notification
       '👋 Your contact of the day',
       'Time to reach out to ${contact.name}!',
+    );
+  }
+
+  Future<void> showTestNotification() async {
+    await showNotification(
+      999, // ID for test notification
+      '🔔 Test Notification',
+      'This is a test notification from StayClose. Your notifications are working correctly!',
     );
   }
 }
