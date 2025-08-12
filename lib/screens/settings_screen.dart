@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/notification_service.dart';
+import '../main.dart';
 
 class SettingsScreen extends StatefulWidget {
   @override
@@ -10,26 +11,29 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   final NotificationService _notificationService = NotificationService();
   TimeOfDay _notificationTime = TimeOfDay(hour: 9, minute: 0); // Default 9:00 AM
+  ThemeMode _currentThemeMode = ThemeMode.system;
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadNotificationTime();
+    _loadSettings();
   }
 
-  Future<void> _loadNotificationTime() async {
+  Future<void> _loadSettings() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final hour = prefs.getInt('notification_hour') ?? 9;
       final minute = prefs.getInt('notification_minute') ?? 0;
+      final themeModeIndex = prefs.getInt('theme_mode') ?? 0;
       
       setState(() {
         _notificationTime = TimeOfDay(hour: hour, minute: minute);
+        _currentThemeMode = ThemeMode.values[themeModeIndex];
         _isLoading = false;
       });
     } catch (e) {
-      print('Error loading notification time: $e');
+      print('Error loading settings: $e');
       setState(() {
         _isLoading = false;
       });
@@ -88,6 +92,122 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     if (picked != null && picked != _notificationTime) {
       await _saveNotificationTime(picked);
+    }
+  }
+
+  Future<void> _changeTheme(ThemeMode themeMode) async {
+    try {
+      final appState = MyApp.of(context);
+      if (appState != null) {
+        await appState.changeTheme(themeMode);
+        setState(() {
+          _currentThemeMode = themeMode;
+        });
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Theme updated to ${_getThemeName(themeMode)}'),
+              backgroundColor: Colors.teal,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('Error changing theme: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to update theme'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  String _getThemeName(ThemeMode themeMode) {
+    switch (themeMode) {
+      case ThemeMode.light:
+        return 'Light';
+      case ThemeMode.dark:
+        return 'Dark';
+      case ThemeMode.system:
+        return 'System';
+    }
+  }
+
+  Future<void> _showThemeDialog() async {
+    final ThemeMode? selectedTheme = await showDialog<ThemeMode>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Choose Theme'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              RadioListTile<ThemeMode>(
+                title: Row(
+                  children: [
+                    Icon(Icons.brightness_auto, color: Colors.grey[600]),
+                    SizedBox(width: 12),
+                    Text('System'),
+                  ],
+                ),
+                subtitle: Text('Follow device setting'),
+                value: ThemeMode.system,
+                groupValue: _currentThemeMode,
+                onChanged: (ThemeMode? value) {
+                  Navigator.pop(context, value);
+                },
+                activeColor: Colors.teal,
+              ),
+              RadioListTile<ThemeMode>(
+                title: Row(
+                  children: [
+                    Icon(Icons.light_mode, color: Colors.amber),
+                    SizedBox(width: 12),
+                    Text('Light'),
+                  ],
+                ),
+                subtitle: Text('Light theme'),
+                value: ThemeMode.light,
+                groupValue: _currentThemeMode,
+                onChanged: (ThemeMode? value) {
+                  Navigator.pop(context, value);
+                },
+                activeColor: Colors.teal,
+              ),
+              RadioListTile<ThemeMode>(
+                title: Row(
+                  children: [
+                    Icon(Icons.dark_mode, color: Colors.indigo),
+                    SizedBox(width: 12),
+                    Text('Dark'),
+                  ],
+                ),
+                subtitle: Text('Dark theme'),
+                value: ThemeMode.dark,
+                groupValue: _currentThemeMode,
+                onChanged: (ThemeMode? value) {
+                  Navigator.pop(context, value);
+                },
+                activeColor: Colors.teal,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Cancel'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (selectedTheme != null && selectedTheme != _currentThemeMode) {
+      await _changeTheme(selectedTheme);
     }
   }
 
@@ -165,6 +285,48 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           subtitle: Text('Test your notification settings'),
                           trailing: Icon(Icons.send),
                           onTap: _testNotification,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                SizedBox(height: 20),
+                Card(
+                  child: Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Appearance',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.teal,
+                          ),
+                        ),
+                        SizedBox(height: 16),
+                        Text(
+                          'Choose your preferred theme for the app',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                        SizedBox(height: 20),
+                        ListTile(
+                          leading: Icon(
+                            _currentThemeMode == ThemeMode.dark
+                                ? Icons.dark_mode
+                                : _currentThemeMode == ThemeMode.light
+                                    ? Icons.light_mode
+                                    : Icons.brightness_auto,
+                            color: Colors.teal,
+                          ),
+                          title: Text('Theme'),
+                          subtitle: Text(_getThemeName(_currentThemeMode)),
+                          trailing: Icon(Icons.chevron_right),
+                          onTap: _showThemeDialog,
                         ),
                       ],
                     ),
