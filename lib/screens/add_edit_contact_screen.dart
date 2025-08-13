@@ -22,6 +22,7 @@ class _AddEditContactScreenState extends State<AddEditContactScreen> {
   late String _phone;
   late String _email;
   String? _imagePath;
+  String _circle = 'Friends'; // Default circle
   List<ImportantDate> _importantDates = [];
 
   @override
@@ -31,6 +32,7 @@ class _AddEditContactScreenState extends State<AddEditContactScreen> {
     _phone = widget.contact?.phone ?? '';
     _email = widget.contact?.email ?? '';
     _imagePath = widget.contact?.imagePath;
+    _circle = widget.contact?.circle ?? 'Friends';
     _importantDates = List.from(widget.contact?.importantDates ?? []);
   }
 
@@ -45,6 +47,7 @@ class _AddEditContactScreenState extends State<AddEditContactScreen> {
           phone: _phone,
           email: _email,
           imagePath: _imagePath,
+          circle: _circle,
           importantDates: _importantDates,
         );
         contacts.add(newContact);
@@ -62,6 +65,7 @@ class _AddEditContactScreenState extends State<AddEditContactScreen> {
             phone: _phone,
             email: _email,
             imagePath: _imagePath,
+            circle: _circle,
             importantDates: _importantDates,
           );
         }
@@ -222,6 +226,50 @@ class _AddEditContactScreenState extends State<AddEditContactScreen> {
                           ),
                           keyboardType: TextInputType.emailAddress,
                           onSaved: (value) => _email = value ?? '',
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                SizedBox(height: 20),
+                Card(
+                  child: Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Circle',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey[800],
+                          ),
+                        ),
+                        SizedBox(height: 12),
+                        DropdownButtonFormField<String>(
+                          value: _circle,
+                          decoration: InputDecoration(
+                            border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.group),
+                          ),
+                          items: Circles.getAllCircles().map((circle) {
+                            return DropdownMenuItem<String>(
+                              value: circle,
+                              child: Row(
+                                children: [
+                                  Text(Circles.getCircleEmoji(circle)),
+                                  SizedBox(width: 8),
+                                  Text(circle),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            setState(() {
+                              _circle = value ?? 'Friends';
+                            });
+                          },
                         ),
                       ],
                     ),

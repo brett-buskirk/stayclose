@@ -18,7 +18,9 @@
 - **Contact Import**: Import contacts directly from your device with search and bulk selection
 - **Smart Search**: Real-time search through all kindred by name, phone, or email
 - **Kindred Management**: Add, edit, and delete kindred with phone and email information
-- **Alphabetical Organization**: All contacts automatically sorted alphabetically
+- **Circle Organization**: Categorize kindred into circles (Family 👨‍👩‍👧‍👦, Friends 👥, Work 💼, Other ⭐)
+- **Circle Filtering**: Filter kindred by circle with visual filter chips
+- **Alphabetical Organization**: All contacts automatically sorted alphabetically within circles
 - **Profile Pictures**: Camera and gallery access with custom cropping interface
 - **Important Dates**: Track birthdays, anniversaries in MM/DD/YYYY format
 - **Daily Kindred Selection**: Smart random selection of a kindred to reach out to each day
@@ -40,7 +42,9 @@
 - **Material 3 Design**: Clean, modern interface with teal color scheme
 - **Custom Image Cropping**: Accessible crop interface with properly positioned controls
 - **Kindred Avatars**: Profile pictures with letter fallbacks for kindred without photos
-- **Kindred Cards**: Beautiful card-based layout with circular avatars
+- **Kindred Cards**: Beautiful card-based layout with circular avatars and circle badges
+- **Circle Badges**: Visual circle indicators with emojis on each kindred card
+- **Filter Chips**: Interactive circle filtering with emoji-enhanced filter buttons
 - **Upcoming Dates**: Visual indicators for kindred with important dates in the next 30 days
 - **Responsive Design**: Optimized for various screen sizes and different devices
 - **Empty States**: Helpful messages when no kindred exist
@@ -72,7 +76,7 @@
 ```
 lib/
 ├── models/
-│   └── contact.dart              # Contact and ImportantDate data models
+│   └── contact.dart              # Contact, ImportantDate, and Circles data models
 ├── screens/
 │   ├── home_screen.dart          # Contact of the Day home screen with import
 │   ├── contact_list_screen.dart  # All contacts list with settings access
@@ -151,10 +155,12 @@ flutter build ios --release
 
 4. **Manage Kindred**
    - Access "All Kindred" from the home screen menu or people icon
+   - **Circle Filtering**: Use filter chips to view kindred by circle (All 🌟, Family 👨‍👩‍👧‍👦, Friends 👥, Work 💼, Other ⭐)
    - **Smart Search**: Use search bar to quickly find specific kindred by name, phone, or email
+   - **Circle Organization**: See circle badges on each kindred card for easy identification
    - **Alphabetical List**: All kindred automatically sorted alphabetically for easy browsing
    - **Dual Action Buttons**: Import more contacts or add individual kindred via floating buttons
-   - Tap any kindred to edit their information and photo
+   - Tap any kindred to edit their information, photo, and circle assignment
    - Use the popup menu to edit or delete kindred
    - View upcoming important dates highlighted on kindred cards
 

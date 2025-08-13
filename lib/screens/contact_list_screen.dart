@@ -21,6 +21,7 @@ class _ContactListScreenState extends State<ContactListScreen> {
   List<Contact> _contacts = [];
   List<Contact> _filteredContacts = [];
   String _searchQuery = '';
+  String _selectedCircle = 'All';
 
   @override
   void initState() {
@@ -45,10 +46,20 @@ class _ContactListScreenState extends State<ContactListScreen> {
   }
 
   void _filterContacts() {
-    if (_searchQuery.isEmpty) {
-      _filteredContacts = List.from(_contacts);
+    List<Contact> circleFiltered;
+    
+    // First filter by circle
+    if (_selectedCircle == 'All') {
+      circleFiltered = List.from(_contacts);
     } else {
-      _filteredContacts = _contacts.where((contact) {
+      circleFiltered = _contacts.where((contact) => contact.circle == _selectedCircle).toList();
+    }
+    
+    // Then filter by search query
+    if (_searchQuery.isEmpty) {
+      _filteredContacts = circleFiltered;
+    } else {
+      _filteredContacts = circleFiltered.where((contact) {
         final name = contact.name.toLowerCase();
         final phone = contact.phone.toLowerCase();
         final email = contact.email.toLowerCase();
@@ -64,6 +75,13 @@ class _ContactListScreenState extends State<ContactListScreen> {
   void _onSearchChanged(String query) {
     setState(() {
       _searchQuery = query;
+      _filterContacts();
+    });
+  }
+
+  void _onCircleChanged(String circle) {
+    setState(() {
+      _selectedCircle = circle;
       _filterContacts();
     });
   }
@@ -233,6 +251,7 @@ class _ContactListScreenState extends State<ContactListScreen> {
             ? deviceContact.emails.first.address 
             : '',
           imagePath: null, // We'll handle image import separately if needed
+          circle: 'Friends', // Default circle for imported contacts
           importantDates: [], // User can add these manually later
         );
 
@@ -309,6 +328,25 @@ class _ContactListScreenState extends State<ContactListScreen> {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Circle badge
+            Padding(
+              padding: EdgeInsets.only(bottom: 4),
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.teal.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '${Circles.getCircleEmoji(contact.circle)} ${contact.circle}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.teal,
+                  ),
+                ),
+              ),
+            ),
             if (contact.phone.isNotEmpty)
               Row(
                 children: [
@@ -390,6 +428,26 @@ class _ContactListScreenState extends State<ContactListScreen> {
     );
   }
 
+  Widget _buildCircleFilterButton(String circle) {
+    final isSelected = _selectedCircle == circle;
+    final emoji = circle == 'All' ? '🌟' : Circles.getCircleEmoji(circle);
+    
+    return Padding(
+      padding: EdgeInsets.only(right: 8),
+      child: FilterChip(
+        selected: isSelected,
+        onSelected: (selected) => _onCircleChanged(circle),
+        label: Text('$emoji $circle'),
+        selectedColor: Colors.teal.withOpacity(0.2),
+        checkmarkColor: Colors.teal,
+        labelStyle: TextStyle(
+          color: isSelected ? Colors.teal : Colors.grey[700],
+          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -442,6 +500,20 @@ class _ContactListScreenState extends State<ContactListScreen> {
             )
           : Column(
               children: [
+                // Circle filter buttons
+                Container(
+                  height: 50,
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    children: [
+                      _buildCircleFilterButton('All'),
+                      ...Circles.getAllCircles().map((circle) => _buildCircleFilterButton(circle)),
+                    ],
+                  ),
+                ),
+                
                 // Search bar
                 Padding(
                   padding: EdgeInsets.all(16),

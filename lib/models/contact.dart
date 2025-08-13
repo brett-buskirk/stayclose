@@ -5,6 +5,7 @@ class Contact {
   String phone;
   String email;
   String? imagePath;
+  String circle;
   List<ImportantDate> importantDates;
 
   Contact({
@@ -13,6 +14,7 @@ class Contact {
     this.phone = '',
     this.email = '',
     this.imagePath,
+    this.circle = 'Friends',
     this.importantDates = const [],
   });
 
@@ -23,6 +25,7 @@ class Contact {
       phone: json['phone'] ?? '',
       email: json['email'] ?? '',
       imagePath: json['imagePath'],
+      circle: json['circle'] ?? 'Friends', // Default for existing contacts
       importantDates: (json['importantDates'] as List? ?? [])
           .map((e) => ImportantDate.fromJson(e))
           .toList(),
@@ -36,8 +39,34 @@ class Contact {
       'phone': phone,
       'email': email,
       'imagePath': imagePath,
+      'circle': circle,
       'importantDates': importantDates.map((e) => e.toJson()).toList(),
     };
+  }
+}
+
+class Circles {
+  static const List<String> defaultCircles = [
+    'Family',
+    'Friends', 
+    'Work',
+    'Other',
+  ];
+
+  static const Map<String, String> circleEmojis = {
+    'Family': '👨‍👩‍👧‍👦',
+    'Friends': '👥',
+    'Work': '💼',
+    'Other': '⭐',
+  };
+
+  static String getCircleEmoji(String circle) {
+    return circleEmojis[circle] ?? '⭐';
+  }
+
+  static List<String> getAllCircles() {
+    // This will be enhanced later to include user-defined circles
+    return List.from(defaultCircles);
   }
 }
 
