@@ -226,7 +226,7 @@ Profile pictures are automatically managed and stored locally in the app's docum
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](https://github.com/brett-buskirk/stayclose/blob/main/LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
