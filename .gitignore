@@ -127,3 +127,6 @@ EOF < /dev/null
 /key.properties
 *.jks
 *.pem
+
+# Claude intructions
+CLAUDE.md

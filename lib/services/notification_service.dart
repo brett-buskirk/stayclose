@@ -108,6 +108,14 @@ class NotificationService {
       } catch (e) {
         print('Error checking exact alarm permissions: $e');
       }
+      
+      // Request full screen intent permission for Android 14+
+      try {
+        await androidImplementation.requestFullScreenIntentPermission();
+        print('Requested full screen intent permission');
+      } catch (e) {
+        print('Error requesting full screen intent permission: $e');
+      }
     }
   }
 
