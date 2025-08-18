@@ -82,3 +82,16 @@
 # Keep boot receiver for notifications
 -keep class com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver { *; }
 -keep class com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver { *; }
+
+# Google Play Core (for Flutter Play Store split support)
+-keep class com.google.android.play.core.** { *; }
+-dontwarn com.google.android.play.core.**
+
+# Additional Flutter Play Store rules
+-keep class io.flutter.embedding.android.FlutterPlayStoreSplitApplication { *; }
+-keep class io.flutter.embedding.engine.deferredcomponents.** { *; }
+
+# Missing class warnings - ignore these safely
+-dontwarn com.google.android.play.core.splitcompat.SplitCompatApplication
+-dontwarn com.google.android.play.core.splitinstall.**
+-dontwarn com.google.android.play.core.tasks.**
