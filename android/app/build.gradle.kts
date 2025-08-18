@@ -54,6 +54,21 @@ android {
         release {
             // This line tells Gradle to use the signing configuration you just created.
             signingConfig = signingConfigs.getByName("release")
+            
+            // Enable code shrinking and obfuscation
+            isMinifyEnabled = true
+            isShrinkResources = true
+            
+            // Use ProGuard rules for flutter_local_notifications
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+        }
+        debug {
+            // Debug builds don't use ProGuard
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
 }
