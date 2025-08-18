@@ -125,10 +125,17 @@ lib/
 flutter build apk --release
 ```
 
+**Android App Bundle (recommended for Play Store):**
+```bash
+flutter build appbundle --release
+```
+
 **iOS (requires macOS and Xcode):**
 ```bash
 flutter build ios --release
 ```
+
+**Note**: Release builds use ProGuard for code optimization. Custom ProGuard rules are configured in `android/app/proguard-rules.pro` to ensure `flutter_local_notifications` works correctly in production.
 
 ## 📱 Usage
 
@@ -169,8 +176,9 @@ flutter build ios --release
    - **Daily Nudges**: Set your preferred time for daily kindred reminders
    - **Important Dates**: Set separate time for birthday/anniversary notifications
    - **Rich Content**: Notifications include specific names and contact information
-   - Test your notification settings with the "Send Test Notification" option
+   - Test your notification settings with the "Test Scheduled Nudge" option
    - Allow notification permissions when prompted
+   - **Android 13+**: Enable "Alarms & reminders" permission in device settings for scheduled notifications
 
 6. **Access App Information**
    - Tap the info icon (ℹ️) in the app bar to review StayClose features
@@ -190,6 +198,8 @@ StayClose is available on Google Play Store with comprehensive privacy policy co
 - **Camera**: For profile photos (optional feature)  
 - **Storage**: For saving profile pictures locally
 - **Notifications**: For daily reminders and important date alerts
+- **Schedule Exact Alarms**: For precise daily notification timing (Android 13+)
+- **Full Screen Intent**: For important notification display (Android 14+)
 
 **Privacy Policy**: [https://brett-buskirk.github.io/stayclose/privacy-policy.html](https://brett-buskirk.github.io/stayclose/privacy-policy.html)
 
@@ -201,8 +211,9 @@ All data remains on your device - no cloud storage, tracking, or third-party sha
 Most configuration is now handled through the in-app Settings screen:
 
 - **Notification Time**: Customize your daily reminder time using the time picker
-- **Test Notifications**: Verify your settings work correctly
+- **Test Notifications**: Use "Test Scheduled Nudge" to verify settings work correctly
 - **Default Time**: 9:00 AM (automatically applied for new users)
+- **Theme Selection**: Choose between Light, Dark, or System theme
 
 ### Advanced Configuration
 
@@ -228,6 +239,35 @@ Profile pictures are automatically managed and stored locally in the app's docum
 
 This project is licensed under the MIT License - see the [LICENSE](https://github.com/brett-buskirk/stayclose/blob/main/LICENSE) file for details.
 
+## 🛠 Troubleshooting
+
+### Notifications Not Working (Android 13+)
+If daily nudges aren't appearing:
+
+1. **Check App Settings**:
+   - Go to device Settings > Apps > StayClose > Notifications
+   - Ensure "Daily Kindred Reminder" channel is enabled
+   - Verify notification importance is set to "High" or "Urgent"
+
+2. **Enable Alarms & Reminders**:
+   - Go to device Settings > Apps > Special app access > Alarms & reminders
+   - Find StayClose and enable permission
+   - This is required for scheduled notifications on Android 13+
+
+3. **Battery Optimization**:
+   - Go to device Settings > Apps > StayClose > Battery
+   - Select "Unrestricted" or disable battery optimization
+   - This prevents the system from stopping scheduled notifications
+
+4. **Test Notifications**:
+   - Use "Test Scheduled Nudge" in Settings to verify scheduling works
+   - Test notification should arrive in exactly 1 minute
+
+### Build Issues
+If you encounter notification issues in release builds:
+- Ensure ProGuard rules in `android/app/proguard-rules.pro` are properly configured
+- The app includes custom keep rules for `flutter_local_notifications`
+
 ## 🙏 Acknowledgments
 
 - Flutter team for the amazing framework
@@ -237,3 +277,5 @@ This project is licensed under the MIT License - see the [LICENSE](https://githu
 ---
 
 **Made with ❤️ to help you stay close to the people who matter most.**
+
+**Current Version**: v0.2.2+13 - Production ready with Android 13+ notification compatibility
