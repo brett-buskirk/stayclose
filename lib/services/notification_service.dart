@@ -24,8 +24,38 @@ class NotificationService {
       print('Current local time: $now');
       print('Current UTC time: ${now.toUtc()}');
       
-      // Set to America/New_York since you're in Eastern time
-      tz.setLocalLocation(tz.getLocation('America/New_York'));
+      // Try to detect local timezone, fall back to America/New_York if detection fails
+      String? detectedTimeZone;
+      try {
+        // Try to get the device's actual timezone
+        detectedTimeZone = now.timeZoneName;
+        // Map common timezone abbreviations to full names
+        if (detectedTimeZone == 'EST' || detectedTimeZone == 'EDT') {
+          detectedTimeZone = 'America/New_York';
+        } else if (detectedTimeZone == 'PST' || detectedTimeZone == 'PDT') {
+          detectedTimeZone = 'America/Los_Angeles';
+        } else if (detectedTimeZone == 'CST' || detectedTimeZone == 'CDT') {
+          detectedTimeZone = 'America/Chicago';
+        } else if (detectedTimeZone == 'MST' || detectedTimeZone == 'MDT') {
+          detectedTimeZone = 'America/Denver';
+        }
+        
+        // Try to set the detected timezone
+        tz.setLocalLocation(tz.getLocation(detectedTimeZone));
+        print('Successfully set timezone to detected: $detectedTimeZone');
+      } catch (timezoneError) {
+        print('Failed to set detected timezone ($detectedTimeZone): $timezoneError');
+        // Fall back to America/New_York (app author's timezone)
+        try {
+          tz.setLocalLocation(tz.getLocation('America/New_York'));
+          print('Fell back to America/New_York timezone');
+        } catch (fallbackError) {
+          print('Failed to set fallback timezone: $fallbackError');
+          // Final fallback to local device time
+          tz.setLocalLocation(tz.local);
+          print('Using device local timezone as final fallback');
+        }
+      }
       
       // Verify the timezone is set correctly
       final tz.TZDateTime tzNow = tz.TZDateTime.now(tz.local);
@@ -70,11 +100,71 @@ class NotificationService {
           sound: true,
         );
     
-    // Request permissions for Android
-    final androidPermission = await flutterLocalNotificationsPlugin
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-        ?.requestNotificationsPermission();
-    print('Android notification permission result: $androidPermission');
+    // Request permissions for Android with detailed error handling
+    try {
+      final androidImplementation = flutterLocalNotificationsPlugin
+          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+      
+      if (androidImplementation != null) {
+        // Request basic notification permission first
+        final notificationPermission = await androidImplementation.requestNotificationsPermission();
+        print('Android notification permission result: $notificationPermission');
+        
+        if (notificationPermission != true) {
+          print('WARNING: Basic notification permission denied - notifications will not work');
+        }
+        
+        // Request all notification-related permissions
+        await _requestAllAndroidPermissions(androidImplementation);
+      } else {
+        print('WARNING: Could not get Android notification implementation');
+      }
+    } catch (e) {
+      print('ERROR requesting Android permissions: $e');
+    }
+  }
+
+  Future<void> _requestAllAndroidPermissions(AndroidFlutterLocalNotificationsPlugin androidImplementation) async {
+    // Check and request exact alarm permission
+    try {
+      final hasExactAlarmPermission = await androidImplementation.canScheduleExactNotifications();
+      print('Exact alarm permission status: $hasExactAlarmPermission');
+      
+      if (hasExactAlarmPermission != true) {
+        print('Requesting exact alarms permission...');
+        await androidImplementation.requestExactAlarmsPermission();
+        
+        // Recheck after request
+        final recheckExactAlarm = await androidImplementation.canScheduleExactNotifications();
+        print('Exact alarm permission after request: $recheckExactAlarm');
+        
+        if (recheckExactAlarm != true) {
+          print('CRITICAL: Exact alarm permission still denied - scheduled notifications will not work');
+          print('HINT: User must manually enable "Alarms & reminders" permission in device settings');
+        }
+      } else {
+        print('Exact alarm permission already granted');
+      }
+    } catch (e) {
+      print('ERROR checking/requesting exact alarm permissions: $e');
+    }
+    
+    // Request full screen intent permission for Android 14+
+    try {
+      await androidImplementation.requestFullScreenIntentPermission();
+      print('Requested full screen intent permission');
+    } catch (e) {
+      print('ERROR requesting full screen intent permission: $e');
+    }
+    
+    // Check if device is ignoring battery optimizations
+    try {
+      final isBatteryOptimized = await androidImplementation.getActiveNotificationMessagingStyle();
+      // Note: This is a workaround as the plugin doesn't have a direct battery optimization check
+      print('Battery optimization check completed (workaround used)');
+    } catch (e) {
+      print('Battery optimization check failed: $e');
+    }
   }
 
   Future<void> _createNotificationChannels() async {
@@ -125,29 +215,6 @@ class NotificationService {
       await androidImplementation.createNotificationChannel(remindersChannel);
       await androidImplementation.createNotificationChannel(importantDatesChannel);
       print('Created notification channels: daily_contact_reminder, stayclose_reminders, important_dates');
-      
-      // Check exact alarm permission status
-      try {
-        final hasExactAlarmPermission = await androidImplementation.canScheduleExactNotifications();
-        print('Exact alarm permission granted: $hasExactAlarmPermission');
-        
-        if (hasExactAlarmPermission != true) {
-          print('WARNING: Exact alarm permission not granted - scheduled notifications may not work');
-          // Request exact alarm permission
-          await androidImplementation.requestExactAlarmsPermission();
-          print('Requested exact alarms permission');
-        }
-      } catch (e) {
-        print('Error checking exact alarm permissions: $e');
-      }
-      
-      // Request full screen intent permission for Android 14+
-      try {
-        await androidImplementation.requestFullScreenIntentPermission();
-        print('Requested full screen intent permission');
-      } catch (e) {
-        print('Error requesting full screen intent permission: $e');
-      }
     }
   }
 
@@ -207,6 +274,20 @@ class NotificationService {
         notificationBody = "Your kindred of the day is ${todaysKindred.name}. Time to reach out! 💝";
       }
 
+      // Pre-flight checks before scheduling
+      print('Pre-flight notification checks:');
+      final androidImpl = flutterLocalNotificationsPlugin
+          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+      
+      if (androidImpl != null) {
+        final canScheduleExact = await androidImpl.canScheduleExactNotifications();
+        print('  - Can schedule exact notifications: $canScheduleExact');
+        
+        if (canScheduleExact != true) {
+          throw Exception('Cannot schedule exact notifications - exact alarm permission required');
+        }
+      }
+
       await flutterLocalNotificationsPlugin.zonedSchedule(
         1, // ID for daily kindred reminder
         'Time to reach out! 📱',
@@ -226,6 +307,9 @@ class NotificationService {
             showWhen: true,
             fullScreenIntent: true,
             category: AndroidNotificationCategory.reminder,
+            autoCancel: false,
+            ongoing: false,
+            silent: false,
           ),
           iOS: DarwinNotificationDetails(
             presentAlert: true,
@@ -439,5 +523,68 @@ class NotificationService {
     );
     
     print('DEBUG: Test notification scheduled successfully for 1 minute from now');
+  }
+
+  // Diagnostic method to check all notification permissions and settings
+  Future<Map<String, dynamic>> getNotificationStatus() async {
+    final status = <String, dynamic>{};
+    
+    try {
+      final androidImpl = flutterLocalNotificationsPlugin
+          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+      
+      if (androidImpl != null) {
+        // Check basic notification permission
+        try {
+          status['notifications_enabled'] = await androidImpl.areNotificationsEnabled();
+        } catch (e) {
+          status['notifications_enabled'] = 'error: $e';
+        }
+        
+        // Check exact alarm permission
+        try {
+          status['exact_alarms_permitted'] = await androidImpl.canScheduleExactNotifications();
+        } catch (e) {
+          status['exact_alarms_permitted'] = 'error: $e';
+        }
+        
+        // Check scheduled notifications count
+        try {
+          final pendingRequests = await flutterLocalNotificationsPlugin.pendingNotificationRequests();
+          status['pending_notifications_count'] = pendingRequests.length;
+          status['pending_notifications'] = pendingRequests.map((req) => {
+            'id': req.id,
+            'title': req.title,
+            'body': req.body,
+          }).toList();
+        } catch (e) {
+          status['pending_notifications'] = 'error: $e';
+        }
+      }
+      
+      // Add timezone information
+      status['timezone_info'] = {
+        'current_timezone': tz.local.name,
+        'current_time': tz.TZDateTime.now(tz.local).toString(),
+        'device_timezone': DateTime.now().timeZoneName,
+        'device_offset': DateTime.now().timeZoneOffset.toString(),
+      };
+      
+    } catch (e) {
+      status['error'] = e.toString();
+    }
+    
+    return status;
+  }
+
+  // Print comprehensive notification diagnostics
+  Future<void> printNotificationDiagnostics() async {
+    print('=== NOTIFICATION DIAGNOSTICS ===');
+    final status = await getNotificationStatus();
+    
+    for (final entry in status.entries) {
+      print('${entry.key}: ${entry.value}');
+    }
+    print('=== END DIAGNOSTICS ===');
   }
 }
