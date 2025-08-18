@@ -1,0 +1,51 @@
+name: Release Version Check
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  check-version:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Get current version
+      id: version
+      run: |
+        VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //')
+        echo "current=$VERSION" >> $GITHUB_OUTPUT
+        echo "Current version: $VERSION"
+    
+    - name: Check if version changed
+      id: version-check
+      run: |
+        # Get the last tag
+        LAST_TAG=$(git tag --sort=-version:refname | head -n1 || echo "none")
+        CURRENT_VERSION="${{ steps.version.outputs.current }}"
+        
+        echo "Last tag: $LAST_TAG"
+        echo "Current version: $CURRENT_VERSION"
+        
+        if [ "$LAST_TAG" = "none" ]; then
+          echo "No previous tags found"
+          echo "changed=true" >> $GITHUB_OUTPUT
+        elif [ "v$CURRENT_VERSION" != "$LAST_TAG" ]; then
+          echo "Version has changed"
+          echo "changed=true" >> $GITHUB_OUTPUT
+        else
+          echo "Version unchanged"
+          echo "changed=false" >> $GITHUB_OUTPUT
+        fi
+    
+    - name: Suggest release creation
+      if: steps.version-check.outputs.changed == 'true' && github.ref == 'refs/heads/main'
+      run: |
+        echo "🚀 Version updated to ${{ steps.version.outputs.current }}!"
+        echo "Consider creating a GitHub release:"
+        echo "gh release create v${{ steps.version.outputs.current }} --title 'StayClose v${{ steps.version.outputs.current }} - [Title]' --notes '[Release notes]'"
