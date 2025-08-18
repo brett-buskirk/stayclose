@@ -207,11 +207,13 @@ class NotificationService {
         notificationBody = "Your kindred of the day is ${todaysKindred.name}. Time to reach out! 💝";
       }
 
+      // Schedule single notification for next occurrence (not recurring)
+      final scheduledTime = _nextInstanceOfTime(hour, minute);
       await flutterLocalNotificationsPlugin.zonedSchedule(
         1, // ID for daily kindred reminder
         'Time to reach out! 📱',
         notificationBody,
-        _nextInstanceOfTime(hour, minute),
+        scheduledTime,
         const NotificationDetails(
           android: AndroidNotificationDetails(
             'daily_contact_reminder',
@@ -224,7 +226,6 @@ class NotificationService {
             enableLights: true,
             playSound: true,
             showWhen: true,
-            fullScreenIntent: true,
             category: AndroidNotificationCategory.reminder,
           ),
           iOS: DarwinNotificationDetails(
@@ -234,10 +235,10 @@ class NotificationService {
           ),
         ),
         uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
-        matchDateTimeComponents: DateTimeComponents.time,
+        // REMOVED: matchDateTimeComponents to avoid recurring alarm restrictions
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       );
-      final scheduledTime = _nextInstanceOfTime(hour, minute);
+      
       print('Daily nudge scheduled successfully!');
       print('  - Target time: ${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}');
       print('  - Next scheduled: $scheduledTime');
@@ -259,6 +260,66 @@ class NotificationService {
     await flutterLocalNotificationsPlugin.cancel(1);
     // Schedule with new time
     await scheduleDailyContactReminder();
+  }
+
+  // Auto-reschedule next day's notification (called when notification is received)
+  Future<void> rescheduleNextDayNotification() async {
+    try {
+      // Get user's preferred notification time
+      final prefs = await SharedPreferences.getInstance();
+      final hour = prefs.getInt('notification_hour') ?? 9;
+      final minute = prefs.getInt('notification_minute') ?? 0;
+      
+      // Calculate tomorrow's notification time
+      final now = tz.TZDateTime.now(tz.local);
+      final tomorrow = tz.TZDateTime(tz.local, now.year, now.month, now.day + 1, hour, minute);
+      
+      // Get tomorrow's kindred for the notification
+      final contacts = await _contactStorage.getContacts();
+      String notificationBody = "Check who's your kindred of the day";
+      
+      if (contacts.isNotEmpty) {
+        final tomorrowDate = DateTime(now.year, now.month, now.day + 1);
+        final daysSinceEpoch = tomorrowDate.difference(DateTime(1970, 1, 1)).inDays;
+        final kindredIndex = daysSinceEpoch % contacts.length;
+        final tomorrowsKindred = contacts[kindredIndex];
+        notificationBody = "Your kindred of the day is ${tomorrowsKindred.name}. Time to reach out! 💝";
+      }
+      
+      // Schedule tomorrow's notification
+      await flutterLocalNotificationsPlugin.zonedSchedule(
+        1, // Same ID to replace any existing
+        'Time to reach out! 📱',
+        notificationBody,
+        tomorrow,
+        const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'daily_contact_reminder',
+            'Daily Kindred Reminder',
+            channelDescription: 'Daily reminder to check your kindred of the day',
+            importance: Importance.max,
+            priority: Priority.max,
+            icon: '@mipmap/ic_launcher',
+            enableVibration: true,
+            enableLights: true,
+            playSound: true,
+            showWhen: true,
+            category: AndroidNotificationCategory.reminder,
+          ),
+          iOS: DarwinNotificationDetails(
+            presentAlert: true,
+            presentBadge: true,
+            presentSound: true,
+          ),
+        ),
+        uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      );
+      
+      print('Next day notification rescheduled for: $tomorrow');
+    } catch (e) {
+      print('Failed to reschedule next day notification: $e');
+    }
   }
 
   Future<void> scheduleImportantDateNotifications() async {
@@ -389,30 +450,15 @@ class NotificationService {
     );
   }
 
-  Future<void> showTestNotification() async {
-    await showNotification(
-      999, // ID for test notification
-      '👋 Test Nudge',
-      'This is a test nudge from StayClose. Your nudges are working correctly!',
-    );
-  }
-
-  // Debug function to test scheduled notification in 1 minute
+  // Test function to schedule notification in 1 minute for user verification
   Future<void> scheduleTestNotificationInOneMinute() async {
     final now = tz.TZDateTime.now(tz.local);
     final scheduledTime = now.add(const Duration(minutes: 1));
-    
-    print('DEBUG: Scheduling test notification');
-    print('  - Current time: $now');
-    print('  - Scheduled for: $scheduledTime');
-    print('  - TZ timezone: ${tz.local}');
-    print('  - Local DateTime: ${DateTime.now()}');
-    print('  - Local timezone offset: ${DateTime.now().timeZoneOffset}');
-    
+
     await flutterLocalNotificationsPlugin.zonedSchedule(
-      998, // ID for debug test notification
-      '🧪 DEBUG: Scheduled Test',
-      'This notification was scheduled for 1 minute from now. Time: ${scheduledTime.toString()}',
+      998, // ID for test notification
+      '🧪 Test Scheduled Nudge',
+      'This test notification was scheduled for 1 minute from when you pressed the button. Your scheduled notifications are working!',
       scheduledTime,
       const NotificationDetails(
         android: AndroidNotificationDetails(
@@ -437,7 +483,5 @@ class NotificationService {
       uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
     );
-    
-    print('DEBUG: Test notification scheduled successfully for 1 minute from now');
   }
 }

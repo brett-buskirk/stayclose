@@ -314,30 +314,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  Future<void> _testNotification() async {
-    try {
-      await _notificationService.showTestNotification();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Test nudge sent!'),
-            backgroundColor: Colors.teal,
-          ),
-        );
-      }
-    } catch (e) {
-      print('Error sending test notification: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to send test nudge'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
   Future<void> _testScheduledNotification() async {
     try {
       await _notificationService.scheduleTestNotificationInOneMinute();
@@ -407,13 +383,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           onTap: _selectTime,
                         ),
                         Divider(),
-                        ListTile(
-                          leading: Icon(Icons.notification_add, color: Colors.blue),
-                          title: Text('Send Test Nudge'),
-                          subtitle: Text('Test your nudge settings'),
-                          trailing: Icon(Icons.send),
-                          onTap: _testNotification,
-                        ),
                         ListTile(
                           leading: Icon(Icons.schedule, color: Colors.orange),
                           title: Text('Test Scheduled Nudge'),
