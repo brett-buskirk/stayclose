@@ -338,6 +338,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  Future<void> _testScheduledNotification() async {
+    try {
+      await _notificationService.scheduleTestNotificationInOneMinute();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Scheduled test nudge for 1 minute from now!'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error scheduling test notification: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error scheduling test nudge'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -389,6 +413,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           subtitle: Text('Test your nudge settings'),
                           trailing: Icon(Icons.send),
                           onTap: _testNotification,
+                        ),
+                        ListTile(
+                          leading: Icon(Icons.schedule, color: Colors.orange),
+                          title: Text('Test Scheduled Nudge'),
+                          subtitle: Text('Schedule a test nudge for 1 minute from now'),
+                          trailing: Icon(Icons.schedule_send),
+                          onTap: _testScheduledNotification,
                         ),
                       ],
                     ),

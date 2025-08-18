@@ -14,12 +14,30 @@ class NotificationService {
     // Initialize timezone data first
     try {
       tz_data.initializeTimeZones();
+      
+      // Get device timezone information for debugging
+      final DateTime now = DateTime.now();
+      final String timeZoneName = now.timeZoneName;
+      final Duration timeZoneOffset = now.timeZoneOffset;
+      print('Device timezone name: $timeZoneName');
+      print('Device timezone offset: $timeZoneOffset');
+      print('Current local time: $now');
+      print('Current UTC time: ${now.toUtc()}');
+      
+      // Set to America/New_York since you're in Eastern time
       tz.setLocalLocation(tz.getLocation('America/New_York'));
-      print('Timezone set to: America/New_York');
+      
+      // Verify the timezone is set correctly
+      final tz.TZDateTime tzNow = tz.TZDateTime.now(tz.local);
+      print('TZ timezone location: ${tz.local}');
+      print('TZ current time: $tzNow');
+      print('Timezone initialization completed successfully');
+      
     } catch (e) {
       print('Timezone initialization failed: $e');
-      tz.setLocalLocation(tz.local);
-      print('Timezone set to local: ${tz.local}');
+      // Fallback to UTC but warn about it
+      tz.setLocalLocation(tz.UTC);
+      print('WARNING: Fell back to UTC timezone - notifications may be off by timezone offset');
     }
     
     const AndroidInitializationSettings initializationSettingsAndroid =
@@ -90,9 +108,23 @@ class NotificationService {
         sound: RawResourceAndroidNotificationSound('notification'),
       );
       
+      // Create the important dates channel with maximum priority settings
+      const AndroidNotificationChannel importantDatesChannel = AndroidNotificationChannel(
+        'important_dates',
+        'Important Dates',
+        description: 'Notifications for important dates like birthdays and anniversaries',
+        importance: Importance.max,
+        enableVibration: true,
+        enableLights: true,
+        showBadge: true,
+        playSound: true,
+        sound: RawResourceAndroidNotificationSound('notification'),
+      );
+      
       await androidImplementation.createNotificationChannel(dailyChannel);
       await androidImplementation.createNotificationChannel(remindersChannel);
-      print('Created notification channels: daily_contact_reminder, stayclose_reminders');
+      await androidImplementation.createNotificationChannel(importantDatesChannel);
+      print('Created notification channels: daily_contact_reminder, stayclose_reminders, important_dates');
       
       // Check exact alarm permission status
       try {
@@ -363,5 +395,49 @@ class NotificationService {
       '👋 Test Nudge',
       'This is a test nudge from StayClose. Your nudges are working correctly!',
     );
+  }
+
+  // Debug function to test scheduled notification in 1 minute
+  Future<void> scheduleTestNotificationInOneMinute() async {
+    final now = tz.TZDateTime.now(tz.local);
+    final scheduledTime = now.add(const Duration(minutes: 1));
+    
+    print('DEBUG: Scheduling test notification');
+    print('  - Current time: $now');
+    print('  - Scheduled for: $scheduledTime');
+    print('  - TZ timezone: ${tz.local}');
+    print('  - Local DateTime: ${DateTime.now()}');
+    print('  - Local timezone offset: ${DateTime.now().timeZoneOffset}');
+    
+    await flutterLocalNotificationsPlugin.zonedSchedule(
+      998, // ID for debug test notification
+      '🧪 DEBUG: Scheduled Test',
+      'This notification was scheduled for 1 minute from now. Time: ${scheduledTime.toString()}',
+      scheduledTime,
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'daily_contact_reminder',
+          'Daily Kindred Reminder',
+          channelDescription: 'Daily reminder to check your kindred of the day',
+          importance: Importance.max,
+          priority: Priority.max,
+          icon: '@mipmap/ic_launcher',
+          enableVibration: true,
+          enableLights: true,
+          playSound: true,
+          showWhen: true,
+          category: AndroidNotificationCategory.reminder,
+        ),
+        iOS: DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        ),
+      ),
+      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+    );
+    
+    print('DEBUG: Test notification scheduled successfully for 1 minute from now');
   }
 }
