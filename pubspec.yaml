@@ -1,7 +1,7 @@
 name: stayclose
 description: "StayClose - Daily nudges to help you stay connected with the people who matter most."
 publish_to: 'none'
-version: 0.3.0+16
+version: 0.3.1+17
 
 environment:
   sdk: ^3.8.0
