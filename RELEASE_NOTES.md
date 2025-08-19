@@ -1,6 +1,6 @@
 # StayClose Release Notes
 
-## Version 0.4.0 - Custom Circle Management & UI Enhancements
+## Version 0.3.0 - Custom Circle Management & UI Enhancements
 
 **Release Date:** August 19, 2025
 
@@ -69,7 +69,7 @@
 
 ### Migration Notes
 - Existing circles are automatically migrated to the new system
-- Custom circle colors from v0.3.x are preserved
+- Custom circle colors from previous versions are preserved
 - No user action required for upgrade
 
 ### Technical Details
