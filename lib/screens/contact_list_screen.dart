@@ -6,6 +6,9 @@ import 'package:stayclose/screens/settings_screen.dart';
 import 'package:stayclose/services/contact_storage.dart';
 import 'package:stayclose/services/notification_service.dart';
 import 'package:stayclose/services/image_service.dart';
+import 'package:stayclose/services/circle_service.dart';
+import 'package:stayclose/widgets/circle_badge.dart';
+import 'package:stayclose/widgets/circle_filter_chip.dart';
 import 'package:flutter_contacts/flutter_contacts.dart' as flutter_contacts;
 import 'package:permission_handler/permission_handler.dart';
 
@@ -331,21 +334,7 @@ class _ContactListScreenState extends State<ContactListScreen> {
             // Circle badge
             Padding(
               padding: EdgeInsets.only(bottom: 4),
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Colors.teal.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  '${Circles.getCircleEmoji(contact.circle)} ${contact.circle}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.teal,
-                  ),
-                ),
-              ),
+              child: CircleBadge(circle: contact.circle),
             ),
             if (contact.phone.isNotEmpty)
               Row(
@@ -430,21 +419,11 @@ class _ContactListScreenState extends State<ContactListScreen> {
 
   Widget _buildCircleFilterButton(String circle) {
     final isSelected = _selectedCircle == circle;
-    final emoji = circle == 'All' ? '🌟' : Circles.getCircleEmoji(circle);
     
-    return Padding(
-      padding: EdgeInsets.only(right: 8),
-      child: FilterChip(
-        selected: isSelected,
-        onSelected: (selected) => _onCircleChanged(circle),
-        label: Text('$emoji $circle'),
-        selectedColor: Colors.teal.withOpacity(0.2),
-        checkmarkColor: Colors.teal,
-        labelStyle: TextStyle(
-          color: isSelected ? Colors.teal : Colors.grey[700],
-          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-        ),
-      ),
+    return CircleFilterChip(
+      circle: circle,
+      isSelected: isSelected,
+      onSelected: (selected) => _onCircleChanged(circle),
     );
   }
 

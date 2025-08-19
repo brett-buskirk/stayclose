@@ -60,8 +60,37 @@ class Circles {
     'Other': '⭐',
   };
 
+  static const Map<String, int> defaultCircleColors = {
+    'Family': 0xFF4CAF50,    // Green
+    'Friends': 0xFF2196F3,   // Blue  
+    'Work': 0xFF009688,      // Teal
+    'Other': 0xFF9C27B0,     // Purple
+  };
+
+  static const List<int> availableColors = [
+    0xFF4CAF50, // Green
+    0xFF2196F3, // Blue
+    0xFF009688, // Teal
+    0xFF9C27B0, // Purple
+    0xFFFF9800, // Orange
+    0xFFF44336, // Red
+    0xFF673AB7, // Deep Purple
+    0xFF3F51B5, // Indigo
+    0xFF00BCD4, // Cyan
+    0xFF8BC34A, // Light Green
+    0xFFFFEB3B, // Yellow
+    0xFF795548, // Brown
+    0xFF607D8B, // Blue Grey
+    0xFFE91E63, // Pink
+    0xFFFF5722, // Deep Orange
+  ];
+
   static String getCircleEmoji(String circle) {
     return circleEmojis[circle] ?? '⭐';
+  }
+
+  static int getDefaultCircleColor(String circle) {
+    return defaultCircleColors[circle] ?? 0xFF009688; // Default to teal
   }
 
   static List<String> getAllCircles() {

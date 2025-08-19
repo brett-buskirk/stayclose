@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/notification_service.dart';
 import '../main.dart';
+import 'circle_colors_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   @override
@@ -466,6 +467,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           subtitle: Text(_getThemeName(_currentThemeMode)),
                           trailing: Icon(Icons.chevron_right),
                           onTap: _showThemeDialog,
+                        ),
+                        Divider(),
+                        ListTile(
+                          leading: Icon(
+                            Icons.palette,
+                            color: Colors.teal,
+                          ),
+                          title: Text('Circle Colors'),
+                          subtitle: Text('Customize colors for Family, Friends, Work, and Other'),
+                          trailing: Icon(Icons.chevron_right),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => CircleColorsScreen(),
+                              ),
+                            );
+                          },
                         ),
                       ],
                     ),
