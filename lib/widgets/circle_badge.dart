@@ -33,11 +33,21 @@ class _CircleBadgeState extends State<CircleBadge> {
   }
 
   Future<void> _loadCircleColor() async {
-    final color = await _circleService.getCircleColor(widget.circle);
-    if (mounted) {
-      setState(() {
-        _circleColor = color;
-      });
+    try {
+      final color = await _circleService.getCircleColor(widget.circle);
+      if (mounted) {
+        setState(() {
+          _circleColor = color;
+        });
+      }
+    } catch (e) {
+      print('Error loading circle color for ${widget.circle}: $e');
+      // Use fallback color
+      if (mounted) {
+        setState(() {
+          _circleColor = Color(Circles.getDefaultCircleColor(widget.circle));
+        });
+      }
     }
   }
 

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:stayclose/models/contact.dart';
 import 'package:stayclose/services/contact_storage.dart';
 import 'package:stayclose/services/image_service.dart';
+import 'package:stayclose/services/circle_service.dart';
 import 'package:uuid/uuid.dart';
 
 class AddEditContactScreen extends StatefulWidget {
@@ -18,12 +19,14 @@ class _AddEditContactScreenState extends State<AddEditContactScreen> {
   final _formKey = GlobalKey<FormState>();
   final ContactStorage _contactStorage = ContactStorage();
   final ImageService _imageService = ImageService();
+  final CircleService _circleService = CircleService();
   late String _name;
   late String _phone;
   late String _email;
   String? _imagePath;
   String _circle = 'Friends'; // Default circle
   List<ImportantDate> _importantDates = [];
+  List<Circle> _circles = [];
 
   @override
   void initState() {
@@ -34,6 +37,22 @@ class _AddEditContactScreenState extends State<AddEditContactScreen> {
     _imagePath = widget.contact?.imagePath;
     _circle = widget.contact?.circle ?? 'Friends';
     _importantDates = List.from(widget.contact?.importantDates ?? []);
+    _loadCircles();
+  }
+
+  Future<void> _loadCircles() async {
+    try {
+      final circles = await _circleService.getAllCircles();
+      setState(() {
+        _circles = circles;
+      });
+    } catch (e) {
+      print('Error loading circles: $e');
+      // Use fallback circles if loading fails
+      setState(() {
+        _circles = Circles.defaultCircles;
+      });
+    }
   }
 
   Future<void> _saveContact() async {
@@ -253,14 +272,14 @@ class _AddEditContactScreenState extends State<AddEditContactScreen> {
                             border: OutlineInputBorder(),
                             prefixIcon: Icon(Icons.group),
                           ),
-                          items: Circles.getAllCircles().map((circle) {
+                          items: _circles.map((circle) {
                             return DropdownMenuItem<String>(
-                              value: circle,
+                              value: circle.name,
                               child: Row(
                                 children: [
-                                  Text(Circles.getCircleEmoji(circle)),
+                                  Text(circle.emoji),
                                   SizedBox(width: 8),
-                                  Text(circle),
+                                  Text(circle.name),
                                 ],
                               ),
                             );

@@ -21,15 +21,37 @@ class _ContactListScreenState extends State<ContactListScreen> {
   final ContactStorage _contactStorage = ContactStorage();
   final NotificationService _notificationService = NotificationService();
   final ImageService _imageService = ImageService();
+  final CircleService _circleService = CircleService();
   List<Contact> _contacts = [];
   List<Contact> _filteredContacts = [];
+  List<Circle> _circles = [];
   String _searchQuery = '';
   String _selectedCircle = 'All';
+  bool _isMultiSelectMode = false;
+  Set<String> _selectedContactIds = <String>{};
 
   @override
   void initState() {
     super.initState();
-    _loadContacts();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    await Future.wait([
+      _loadContacts(),
+      _loadCircles(),
+    ]);
+  }
+
+  Future<void> _loadCircles() async {
+    try {
+      final circles = await _circleService.getAllCircles();
+      setState(() {
+        _circles = circles;
+      });
+    } catch (e) {
+      print('Error loading circles: $e');
+    }
   }
 
   Future<void> _loadContacts() async {
@@ -87,6 +109,143 @@ class _ContactListScreenState extends State<ContactListScreen> {
       _selectedCircle = circle;
       _filterContacts();
     });
+  }
+
+  void _toggleMultiSelectMode() {
+    setState(() {
+      _isMultiSelectMode = !_isMultiSelectMode;
+      if (!_isMultiSelectMode) {
+        _selectedContactIds.clear();
+      }
+    });
+  }
+
+  void _toggleContactSelection(String contactId) {
+    setState(() {
+      if (_selectedContactIds.contains(contactId)) {
+        _selectedContactIds.remove(contactId);
+      } else {
+        _selectedContactIds.add(contactId);
+      }
+    });
+  }
+
+  void _selectAllFilteredContacts() {
+    setState(() {
+      if (_selectedContactIds.length == _filteredContacts.length) {
+        // Deselect all if all are selected
+        _selectedContactIds.clear();
+      } else {
+        // Select all filtered contacts
+        _selectedContactIds.addAll(_filteredContacts.map((c) => c.id));
+      }
+    });
+  }
+
+  Future<void> _showBulkAssignDialog() async {
+    if (_selectedContactIds.isEmpty) return;
+
+    final selectedContacts = _contacts.where((c) => _selectedContactIds.contains(c.id)).toList();
+    
+    await showDialog(
+      context: context,
+      builder: (context) => _BulkAssignDialog(
+        selectedContacts: selectedContacts,
+        availableCircles: _circles,
+        onAssignmentComplete: (targetCircle, updatedContacts) async {
+          await _handleBulkAssignment(targetCircle, updatedContacts);
+        },
+      ),
+    );
+  }
+
+  Future<void> _handleBulkAssignment(Circle targetCircle, List<Contact> updatedContacts) async {
+    try {
+      // Show progress indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(color: Color(targetCircle.colorValue)),
+              SizedBox(height: 16),
+              Text('Moving ${updatedContacts.length} contacts to ${targetCircle.name}...'),
+            ],
+          ),
+        ),
+      );
+
+      // Update contacts in storage
+      final allContacts = await _contactStorage.getContacts();
+      
+      // Replace the updated contacts in the list
+      for (final updatedContact in updatedContacts) {
+        final index = allContacts.indexWhere((c) => c.id == updatedContact.id);
+        if (index != -1) {
+          allContacts[index] = updatedContact;
+        }
+      }
+      
+      // Save the updated list
+      await _contactStorage.saveContacts(allContacts);
+
+      // Close progress dialog
+      Navigator.pop(context);
+
+      // Reload data and exit multi-select mode
+      await _loadContacts();
+      setState(() {
+        _isMultiSelectMode = false;
+        _selectedContactIds.clear();
+      });
+
+      // Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${updatedContacts.length} contacts moved to ${targetCircle.name}'),
+            backgroundColor: Color(targetCircle.colorValue),
+            action: SnackBarAction(
+              label: 'Undo',
+              textColor: Colors.white,
+              onPressed: () => _showUndoDialog(updatedContacts, targetCircle),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      // Close progress dialog if open
+      Navigator.pop(context);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error updating contacts: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _showUndoDialog(List<Contact> changedContacts, Circle targetCircle) async {
+    // For simplicity, we'll track the previous circle in a map
+    // In a production app, you might want a more robust undo system
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Undo Move'),
+        content: Text('This would restore the previous circle assignments. Feature coming soon!'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _deleteContact(Contact contact) async {
@@ -319,11 +478,28 @@ class _ContactListScreenState extends State<ContactListScreen> {
       margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       elevation: 2,
       child: ListTile(
-        leading: _imageService.buildContactAvatar(
-          imagePath: contact.imagePath,
-          contactName: contact.name,
-          radius: 25,
-        ),
+        leading: _isMultiSelectMode 
+            ? Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Checkbox(
+                    value: _selectedContactIds.contains(contact.id),
+                    onChanged: (selected) => _toggleContactSelection(contact.id),
+                    activeColor: Colors.orange,
+                  ),
+                  SizedBox(width: 8),
+                  _imageService.buildContactAvatar(
+                    imagePath: contact.imagePath,
+                    contactName: contact.name,
+                    radius: 20,
+                  ),
+                ],
+              )
+            : _imageService.buildContactAvatar(
+                imagePath: contact.imagePath,
+                contactName: contact.name,
+                radius: 25,
+              ),
         title: Text(
           contact.name,
           style: TextStyle(fontWeight: FontWeight.w600),
@@ -407,11 +583,15 @@ class _ContactListScreenState extends State<ContactListScreen> {
           ],
         ),
         onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => AddEditContactScreen(contact: contact),
-            ),
-          ).then((_) => _loadContacts());
+          if (_isMultiSelectMode) {
+            _toggleContactSelection(contact.id);
+          } else {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => AddEditContactScreen(contact: contact),
+              ),
+            ).then((_) => _loadContacts());
+          }
         },
       ),
     );
@@ -431,22 +611,49 @@ class _ContactListScreenState extends State<ContactListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('All Kindred'),
-        backgroundColor: Colors.teal,
+        title: _isMultiSelectMode 
+            ? Text('${_selectedContactIds.length} selected')
+            : Text('All Kindred'),
+        backgroundColor: _isMultiSelectMode ? Colors.orange : Colors.teal,
         foregroundColor: Colors.white,
-        actions: [
-          IconButton(
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => SettingsScreen(),
+        leading: _isMultiSelectMode 
+            ? IconButton(
+                onPressed: _toggleMultiSelectMode,
+                icon: Icon(Icons.close),
+                tooltip: 'Exit selection',
+              )
+            : null,
+        actions: _isMultiSelectMode 
+            ? [
+                if (_filteredContacts.isNotEmpty)
+                  IconButton(
+                    onPressed: _selectAllFilteredContacts,
+                    icon: Icon(_selectedContactIds.length == _filteredContacts.length 
+                        ? Icons.deselect 
+                        : Icons.select_all),
+                    tooltip: _selectedContactIds.length == _filteredContacts.length 
+                        ? 'Deselect all' 
+                        : 'Select all',
+                  ),
+              ]
+            : [
+                IconButton(
+                  onPressed: _toggleMultiSelectMode,
+                  icon: Icon(Icons.checklist),
+                  tooltip: 'Multi-select',
                 ),
-              );
-            },
-            icon: Icon(Icons.settings),
-            tooltip: 'Settings',
-          ),
-        ],
+                IconButton(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => SettingsScreen(),
+                      ),
+                    );
+                  },
+                  icon: Icon(Icons.settings),
+                  tooltip: 'Settings',
+                ),
+              ],
       ),
       body: _contacts.isEmpty
           ? Center(
@@ -488,7 +695,7 @@ class _ContactListScreenState extends State<ContactListScreen> {
                     padding: EdgeInsets.symmetric(horizontal: 16),
                     children: [
                       _buildCircleFilterButton('All'),
-                      ...Circles.getAllCircles().map((circle) => _buildCircleFilterButton(circle)),
+                      ..._circles.map((circle) => _buildCircleFilterButton(circle.name)),
                     ],
                   ),
                 ),
@@ -582,36 +789,174 @@ class _ContactListScreenState extends State<ContactListScreen> {
                 ),
               ],
             ),
-      floatingActionButton: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          FloatingActionButton.extended(
-            onPressed: () async {
-              await _showImportContactsDialog();
-            },
-            backgroundColor: Colors.orange,
-            foregroundColor: Colors.white,
-            icon: Icon(Icons.contact_phone),
-            label: Text('Import Contacts'),
-            heroTag: "import", // Required for multiple FABs
-          ),
-          SizedBox(height: 12),
-          FloatingActionButton.extended(
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => AddEditContactScreen(),
+      floatingActionButton: _isMultiSelectMode && _selectedContactIds.isNotEmpty
+          ? FloatingActionButton.extended(
+              onPressed: _showBulkAssignDialog,
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
+              icon: Icon(Icons.group_work),
+              label: Text('Assign to Circle'),
+              heroTag: "bulk_assign",
+            )
+          : Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                FloatingActionButton.extended(
+                  onPressed: () async {
+                    await _showImportContactsDialog();
+                  },
+                  backgroundColor: Colors.orange,
+                  foregroundColor: Colors.white,
+                  icon: Icon(Icons.contact_phone),
+                  label: Text('Import Contacts'),
+                  heroTag: "import", // Required for multiple FABs
                 ),
-              ).then((_) => _loadContacts());
+                SizedBox(height: 12),
+                FloatingActionButton.extended(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => AddEditContactScreen(),
+                      ),
+                    ).then((_) => _loadContacts());
+                  },
+                  backgroundColor: Colors.teal,
+                  foregroundColor: Colors.white,
+                  icon: Icon(Icons.add),
+                  label: Text('Add Kindred'),
+                  heroTag: "add", // Required for multiple FABs
+                ),
+              ],
+            ),
+    );
+  }
+}
+
+class _BulkAssignDialog extends StatefulWidget {
+  final List<Contact> selectedContacts;
+  final List<Circle> availableCircles;
+  final Function(Circle, List<Contact>) onAssignmentComplete;
+
+  const _BulkAssignDialog({
+    required this.selectedContacts,
+    required this.availableCircles,
+    required this.onAssignmentComplete,
+  });
+
+  @override
+  _BulkAssignDialogState createState() => _BulkAssignDialogState();
+}
+
+class _BulkAssignDialogState extends State<_BulkAssignDialog> {
+  Circle? _selectedCircle;
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text('Assign ${widget.selectedContacts.length} contacts to circle'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Selected contacts:',
+            style: TextStyle(fontWeight: FontWeight.w500),
+          ),
+          SizedBox(height: 8),
+          Container(
+            height: 100,
+            child: ListView.builder(
+              itemCount: widget.selectedContacts.length,
+              itemBuilder: (context, index) {
+                final contact = widget.selectedContacts[index];
+                return ListTile(
+                  dense: true,
+                  leading: CircleAvatar(
+                    radius: 16,
+                    backgroundColor: Colors.grey[300],
+                    child: Text(
+                      contact.name.isNotEmpty ? contact.name[0].toUpperCase() : '?',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                  ),
+                  title: Text(contact.name),
+                  subtitle: Text(contact.circle),
+                );
+              },
+            ),
+          ),
+          SizedBox(height: 16),
+          Text(
+            'Move to circle:',
+            style: TextStyle(fontWeight: FontWeight.w500),
+          ),
+          SizedBox(height: 8),
+          DropdownButtonFormField<Circle>(
+            value: _selectedCircle,
+            decoration: InputDecoration(
+              border: OutlineInputBorder(),
+              hintText: 'Select target circle',
+            ),
+            items: widget.availableCircles.map((circle) {
+              return DropdownMenuItem<Circle>(
+                value: circle,
+                child: Row(
+                  children: [
+                    Text(circle.emoji),
+                    SizedBox(width: 8),
+                    Text(circle.name),
+                    SizedBox(width: 8),
+                    Container(
+                      width: 16,
+                      height: 16,
+                      decoration: BoxDecoration(
+                        color: Color(circle.colorValue),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+            onChanged: (Circle? value) {
+              setState(() {
+                _selectedCircle = value;
+              });
             },
-            backgroundColor: Colors.teal,
-            foregroundColor: Colors.white,
-            icon: Icon(Icons.add),
-            label: Text('Add Kindred'),
-            heroTag: "add", // Required for multiple FABs
           ),
         ],
       ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: _selectedCircle == null
+              ? null
+              : () {
+                  // Create updated contacts with new circle
+                  final updatedContacts = widget.selectedContacts.map((contact) {
+                    return Contact(
+                      id: contact.id,
+                      name: contact.name,
+                      phone: contact.phone,
+                      email: contact.email,
+                      imagePath: contact.imagePath,
+                      circle: _selectedCircle!.name,
+                      importantDates: contact.importantDates,
+                    );
+                  }).toList();
+
+                  Navigator.pop(context);
+                  widget.onAssignmentComplete(_selectedCircle!, updatedContacts);
+                },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: _selectedCircle != null ? Color(_selectedCircle!.colorValue) : null,
+          ),
+          child: Text('Assign', style: TextStyle(color: Colors.white)),
+        ),
+      ],
     );
   }
 }

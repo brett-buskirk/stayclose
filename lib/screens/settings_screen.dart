@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../services/notification_service.dart';
 import '../main.dart';
 import 'circle_colors_screen.dart';
+import 'circle_management_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   @override
@@ -241,6 +242,95 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  void _showDailyNudgesInfo() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.info_outline, color: Colors.teal),
+            SizedBox(width: 8),
+            Text('About Daily Nudges'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Daily nudges help you stay connected with the people who matter most.',
+              style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
+            ),
+            SizedBox(height: 16),
+            Text(
+              '• A nudge is a gentle reminder to reach out to someone you care about\n'
+              '• Each day at your chosen time, you\'ll receive a nudge\n'
+              '• The app randomly selects one of your kindred\n'
+              '• This helps you stay connected with important people\n'
+              '• You can change the time anytime in these settings',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[700],
+                height: 1.5,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Got it', style: TextStyle(color: Colors.teal)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showCirclesInfo() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.info_outline, color: Colors.teal),
+            SizedBox(width: 8),
+            Text('About Circles'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Circles help you organize your contacts into meaningful groups.',
+              style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
+            ),
+            SizedBox(height: 16),
+            Text(
+              '• Each contact belongs to one circle (Family, Friends, Work, Other, or custom)\n'
+              '• Create custom circles that match your relationships\n'
+              '• Customize colors and emojis for easy identification\n'
+              '• Filter your contact list by circle\n'
+              '• Reorder circles to match your preferences\n'
+              '• Default circles cannot be deleted but can be customized',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[700],
+                height: 1.5,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Got it', style: TextStyle(color: Colors.teal)),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _showThemeDialog() async {
     final ThemeMode? selectedTheme = await showDialog<ThemeMode>(
       context: context,
@@ -359,15 +449,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Daily Nudges',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.teal,
-                          ),
+                        Row(
+                          children: [
+                            Text(
+                              'Daily Nudges',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.teal,
+                              ),
+                            ),
+                            Spacer(),
+                            IconButton(
+                              onPressed: _showDailyNudgesInfo,
+                              icon: Icon(Icons.info_outline, color: Colors.teal),
+                              tooltip: 'About Daily Nudges',
+                            ),
+                          ],
                         ),
-                        SizedBox(height: 16),
+                        SizedBox(height: 8),
                         Text(
                           'Set when you\'d like to receive your daily kindred nudge',
                           style: TextStyle(
@@ -390,6 +490,79 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           subtitle: Text('Schedule a test nudge for 1 minute from now'),
                           trailing: Icon(Icons.schedule_send),
                           onTap: _testScheduledNotification,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                SizedBox(height: 20),
+                Card(
+                  child: Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              'Circles',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.teal,
+                              ),
+                            ),
+                            Spacer(),
+                            IconButton(
+                              onPressed: _showCirclesInfo,
+                              icon: Icon(Icons.info_outline, color: Colors.teal),
+                              tooltip: 'About Circles',
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          'Organize your contacts and customize your circles',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                        SizedBox(height: 20),
+                        ListTile(
+                          leading: Icon(
+                            Icons.group_work,
+                            color: Colors.teal,
+                          ),
+                          title: Text('Manage Circles'),
+                          subtitle: Text('Create, edit, reorder, and organize your contact circles'),
+                          trailing: Icon(Icons.chevron_right),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => CircleManagementScreen(),
+                              ),
+                            );
+                          },
+                        ),
+                        Divider(),
+                        ListTile(
+                          leading: Icon(
+                            Icons.palette,
+                            color: Colors.teal,
+                          ),
+                          title: Text('Circle Colors'),
+                          subtitle: Text('Customize colors for your circles'),
+                          trailing: Icon(Icons.chevron_right),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => CircleColorsScreen(),
+                              ),
+                            );
+                          },
                         ),
                       ],
                     ),
@@ -467,56 +640,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           subtitle: Text(_getThemeName(_currentThemeMode)),
                           trailing: Icon(Icons.chevron_right),
                           onTap: _showThemeDialog,
-                        ),
-                        Divider(),
-                        ListTile(
-                          leading: Icon(
-                            Icons.palette,
-                            color: Colors.teal,
-                          ),
-                          title: Text('Circle Colors'),
-                          subtitle: Text('Customize colors for Family, Friends, Work, and Other'),
-                          trailing: Icon(Icons.chevron_right),
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => CircleColorsScreen(),
-                              ),
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                SizedBox(height: 20),
-                Card(
-                  child: Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'About Daily Nudges',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.teal,
-                          ),
-                        ),
-                        SizedBox(height: 12),
-                        Text(
-                          '• A nudge is a gentle reminder to reach out to someone you care about\n'
-                          '• Each day at your chosen time, you\'ll receive a nudge\n'
-                          '• The app randomly selects one of your kindred\n'
-                          '• This helps you stay connected with important people\n'
-                          '• You can change the time anytime in these settings',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[600],
-                            height: 1.5,
-                          ),
                         ),
                       ],
                     ),

@@ -45,27 +45,99 @@ class Contact {
   }
 }
 
+class Circle {
+  String id;
+  String name;
+  String emoji;
+  int colorValue;
+  bool isDefault;
+  int order;
+
+  Circle({
+    required this.id,
+    required this.name,
+    required this.emoji,
+    required this.colorValue,
+    required this.isDefault,
+    required this.order,
+  });
+
+  factory Circle.fromJson(Map<String, dynamic> json) {
+    return Circle(
+      id: json['id'],
+      name: json['name'],
+      emoji: json['emoji'],
+      colorValue: json['colorValue'],
+      isDefault: json['isDefault'] ?? false,
+      order: json['order'] ?? 0,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'emoji': emoji,
+      'colorValue': colorValue,
+      'isDefault': isDefault,
+      'order': order,
+    };
+  }
+
+  Circle copyWith({
+    String? id,
+    String? name,
+    String? emoji,
+    int? colorValue,
+    bool? isDefault,
+    int? order,
+  }) {
+    return Circle(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      emoji: emoji ?? this.emoji,
+      colorValue: colorValue ?? this.colorValue,
+      isDefault: isDefault ?? this.isDefault,
+      order: order ?? this.order,
+    );
+  }
+}
+
 class Circles {
-  static const List<String> defaultCircles = [
-    'Family',
-    'Friends', 
-    'Work',
-    'Other',
+  static final List<Circle> defaultCircles = [
+    Circle(
+      id: 'family',
+      name: 'Family',
+      emoji: '👨‍👩‍👧‍👦',
+      colorValue: 0xFF4CAF50, // Green
+      isDefault: true,
+      order: 0,
+    ),
+    Circle(
+      id: 'friends',
+      name: 'Friends',
+      emoji: '👥',
+      colorValue: 0xFF2196F3, // Blue
+      isDefault: true,
+      order: 1,
+    ),
+    Circle(
+      id: 'work',
+      name: 'Work',
+      emoji: '💼',
+      colorValue: 0xFF009688, // Teal
+      isDefault: true,
+      order: 2,
+    ),
+    Circle(
+      id: 'other',
+      name: 'Other',
+      emoji: '⭐',
+      colorValue: 0xFF9C27B0, // Purple
+      isDefault: true,
+      order: 3,
+    ),
   ];
-
-  static const Map<String, String> circleEmojis = {
-    'Family': '👨‍👩‍👧‍👦',
-    'Friends': '👥',
-    'Work': '💼',
-    'Other': '⭐',
-  };
-
-  static const Map<String, int> defaultCircleColors = {
-    'Family': 0xFF4CAF50,    // Green
-    'Friends': 0xFF2196F3,   // Blue  
-    'Work': 0xFF009688,      // Teal
-    'Other': 0xFF9C27B0,     // Purple
-  };
 
   static const List<int> availableColors = [
     0xFF4CAF50, // Green
@@ -85,17 +157,43 @@ class Circles {
     0xFFFF5722, // Deep Orange
   ];
 
-  static String getCircleEmoji(String circle) {
-    return circleEmojis[circle] ?? '⭐';
+  // Legacy methods for backward compatibility
+  static String getCircleEmoji(String circleName) {
+    final circle = defaultCircles.firstWhere(
+      (c) => c.name == circleName,
+      orElse: () => defaultCircles[3], // Default to 'Other'
+    );
+    return circle.emoji;
   }
 
-  static int getDefaultCircleColor(String circle) {
-    return defaultCircleColors[circle] ?? 0xFF009688; // Default to teal
+  static int getDefaultCircleColor(String circleName) {
+    final circle = defaultCircles.firstWhere(
+      (c) => c.name == circleName,
+      orElse: () => defaultCircles[3], // Default to 'Other'
+    );
+    return circle.colorValue;
   }
 
+  // New method - will be enhanced to include custom circles
   static List<String> getAllCircles() {
-    // This will be enhanced later to include user-defined circles
-    return List.from(defaultCircles);
+    return defaultCircles.map((c) => c.name).toList();
+  }
+
+  // Helper methods for finding circles
+  static Circle? findByName(String name, List<Circle> allCircles) {
+    try {
+      return allCircles.firstWhere((c) => c.name == name);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  static Circle? findById(String id, List<Circle> allCircles) {
+    try {
+      return allCircles.firstWhere((c) => c.id == id);
+    } catch (e) {
+      return null;
+    }
   }
 }
 
