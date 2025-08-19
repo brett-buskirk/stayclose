@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:uuid/uuid.dart';
 import '../screens/image_crop_screen.dart';
+import 'default_avatar_service.dart';
 
 class ImageService {
   final ImagePicker _picker = ImagePicker();
@@ -163,10 +164,19 @@ class ImageService {
   Future<void> deleteImage(String? imagePath) async {
     if (imagePath == null || imagePath.isEmpty) return;
     
+    // Don't delete default avatars - they're not actual files
+    if (DefaultAvatarService.isDefaultAvatarPath(imagePath)) {
+      print('Skipping deletion of default avatar: $imagePath');
+      return;
+    }
+    
     try {
       final File imageFile = File(imagePath);
       if (await imageFile.exists()) {
         await imageFile.delete();
+        print('Image deleted successfully: $imagePath');
+      } else {
+        print('Image file does not exist: $imagePath');
       }
     } catch (e) {
       print('Error deleting image: $e');
@@ -177,12 +187,20 @@ class ImageService {
     required BuildContext context,
     required Function(String?) onImageSelected,
   }) async {
-    final ImageSource? selectedSource = await showModalBottomSheet<ImageSource>(
+    final dynamic selectedOption = await showModalBottomSheet<dynamic>(
       context: context,
       builder: (BuildContext context) {
         return SafeArea(
           child: Wrap(
             children: [
+              ListTile(
+                leading: Icon(Icons.pets, color: Colors.orange),
+                title: Text('Choose Cute Avatar'),
+                subtitle: Text('Pick from adorable default avatars'),
+                onTap: () {
+                  Navigator.pop(context, 'default_avatars');
+                },
+              ),
               ListTile(
                 leading: Icon(Icons.photo_library, color: Colors.teal),
                 title: Text('Choose from Gallery'),
@@ -208,12 +226,86 @@ class ImageService {
       },
     );
 
-    if (selectedSource != null) {
+    if (selectedOption == 'default_avatars') {
+      _showDefaultAvatarPicker(context, onImageSelected);
+    } else if (selectedOption is ImageSource) {
       final imagePath = await pickAndCropImage(
         context: context,
-        source: selectedSource,
+        source: selectedOption,
       );
       onImageSelected(imagePath);
+    }
+  }
+
+  Future<void> _showDefaultAvatarPicker(
+    BuildContext context,
+    Function(String?) onImageSelected,
+  ) async {
+    final DefaultAvatar? selectedAvatar = await showDialog<DefaultAvatar>(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          child: Container(
+            width: MediaQuery.of(context).size.width * 0.9,
+            height: MediaQuery.of(context).size.height * 0.7,
+            child: Column(
+              children: [
+                AppBar(
+                  title: Text('Choose a Cute Avatar'),
+                  backgroundColor: Colors.orange,
+                  foregroundColor: Colors.white,
+                  automaticallyImplyLeading: false,
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text('Cancel', style: TextStyle(color: Colors.white)),
+                    ),
+                  ],
+                ),
+                Expanded(
+                  child: GridView.builder(
+                    padding: EdgeInsets.all(16),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                    ),
+                    itemCount: DefaultAvatarService.getAllAvatars().length,
+                    itemBuilder: (context, index) {
+                      final avatar = DefaultAvatarService.getAllAvatars()[index];
+                      return GestureDetector(
+                        onTap: () => Navigator.pop(context, avatar),
+                        child: Column(
+                          children: [
+                            DefaultAvatarService.buildDefaultAvatarWidget(
+                              avatar: avatar,
+                              radius: 30,
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              avatar.name,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (selectedAvatar != null) {
+      final avatarPath = DefaultAvatarService.getDefaultAvatarPath(selectedAvatar);
+      onImageSelected(avatarPath);
     }
   }
 
@@ -223,7 +315,8 @@ class ImageService {
     double radius = 25,
     Color backgroundColor = Colors.teal,
   }) {
-    if (imagePath != null && imagePath.isNotEmpty) {
+    // Check if it's a real image file
+    if (imagePath != null && imagePath.isNotEmpty && !DefaultAvatarService.isDefaultAvatarPath(imagePath)) {
       final File imageFile = File(imagePath);
       try {
         if (imageFile.existsSync()) {
@@ -241,6 +334,17 @@ class ImageService {
       }
     }
 
+    // Check if it's a default avatar path
+    if (imagePath != null && DefaultAvatarService.isDefaultAvatarPath(imagePath)) {
+      final defaultAvatar = DefaultAvatarService.getDefaultAvatarFromPath(imagePath);
+      if (defaultAvatar != null) {
+        return DefaultAvatarService.buildDefaultAvatarWidget(
+          avatar: defaultAvatar,
+          radius: radius,
+        );
+      }
+    }
+
     // Fallback to initial letter avatar
     return CircleAvatar(
       radius: radius,
@@ -254,6 +358,23 @@ class ImageService {
         ),
       ),
     );
+  }
+
+  /// Assign a default avatar to a new contact
+  String assignDefaultAvatar(String contactName) {
+    final defaultAvatar = DefaultAvatarService.getDefaultAvatar(contactName);
+    return DefaultAvatarService.getDefaultAvatarPath(defaultAvatar);
+  }
+
+  /// Get a random default avatar path
+  String getRandomDefaultAvatar() {
+    final defaultAvatar = DefaultAvatarService.getRandomAvatar();
+    return DefaultAvatarService.getDefaultAvatarPath(defaultAvatar);
+  }
+
+  /// Check if path is a default avatar
+  bool isDefaultAvatar(String? imagePath) {
+    return DefaultAvatarService.isDefaultAvatarPath(imagePath);
   }
 
   Widget buildLargeContactAvatar({

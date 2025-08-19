@@ -1,10 +1,61 @@
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:stayclose/models/contact.dart';
 import 'package:stayclose/services/contact_storage.dart';
 import 'package:stayclose/services/image_service.dart';
 import 'package:stayclose/services/circle_service.dart';
 import 'package:uuid/uuid.dart';
+
+// Custom phone number formatter
+class PhoneNumberFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final text = newValue.text;
+    
+    // If it starts with +, it's international - don't format
+    if (text.startsWith('+')) return newValue;
+    
+    // Remove all non-digit characters
+    final digitsOnly = text.replaceAll(RegExp(r'[^\d]'), '');
+    
+    // If more than 11 digits, likely international - don't format
+    if (digitsOnly.length > 11) return newValue;
+    
+    // Format US numbers
+    String formatted = '';
+    
+    if (digitsOnly.isEmpty) return newValue.copyWith(text: '');
+    
+    if (digitsOnly.length <= 10) {
+      // Format as (###) ###-####
+      if (digitsOnly.length >= 1) {
+        formatted += '(${digitsOnly.substring(0, digitsOnly.length > 3 ? 3 : digitsOnly.length)}';
+        if (digitsOnly.length > 3) {
+          formatted += ') ${digitsOnly.substring(3, digitsOnly.length > 6 ? 6 : digitsOnly.length)}';
+          if (digitsOnly.length > 6) {
+            formatted += '-${digitsOnly.substring(6)}';
+          }
+        }
+      }
+    } else if (digitsOnly.length == 11 && digitsOnly.startsWith('1')) {
+      // Format as +1 (###) ###-####
+      final withoutCountryCode = digitsOnly.substring(1);
+      formatted = '+1 (${withoutCountryCode.substring(0, 3)}) ${withoutCountryCode.substring(3, 6)}-${withoutCountryCode.substring(6)}';
+    } else {
+      // For 11 digits not starting with 1, don't format
+      return newValue;
+    }
+    
+    return newValue.copyWith(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
 
 class AddEditContactScreen extends StatefulWidget {
   final Contact? contact;
@@ -27,6 +78,9 @@ class _AddEditContactScreenState extends State<AddEditContactScreen> {
   String _circle = 'Friends'; // Default circle
   List<ImportantDate> _importantDates = [];
   List<Circle> _circles = [];
+  
+  // Text controller for phone number to handle dynamic formatting
+  late TextEditingController _phoneController;
 
   @override
   void initState() {
@@ -37,8 +91,45 @@ class _AddEditContactScreenState extends State<AddEditContactScreen> {
     _imagePath = widget.contact?.imagePath;
     _circle = widget.contact?.circle ?? 'Friends';
     _importantDates = List.from(widget.contact?.importantDates ?? []);
+    
+    // Initialize phone controller with existing phone number
+    _phoneController = TextEditingController(text: _phone);
+    _phoneController.addListener(_onPhoneChanged);
+    
     _loadCircles();
   }
+
+  @override
+  void dispose() {
+    _phoneController.dispose();
+    super.dispose();
+  }
+
+  void _onPhoneChanged() {
+    // Update the _phone variable when controller changes
+    _phone = _phoneController.text;
+  }
+
+  // Email validation helper
+  bool _isValidEmail(String email) {
+    if (email.isEmpty) return true; // Allow empty emails
+    return RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$').hasMatch(email);
+  }
+  
+  // Phone validation helper - more flexible for international numbers
+  bool _isValidPhone(String phone) {
+    if (phone.isEmpty) return true; // Allow empty phones
+    
+    // Remove all non-digit characters for validation
+    final cleanPhone = phone.replaceAll(RegExp(r'[^\d]'), '');
+    
+    // Allow various international formats:
+    // - 10 digits (US without country code)
+    // - 11 digits (US with country code 1)
+    // - 7-15 digits (international standard range)
+    return cleanPhone.length >= 7 && cleanPhone.length <= 15;
+  }
+  
 
   Future<void> _loadCircles() async {
     try {
@@ -60,12 +151,15 @@ class _AddEditContactScreenState extends State<AddEditContactScreen> {
       _formKey.currentState!.save();
       final contacts = await _contactStorage.getContacts();
       if (widget.contact == null) {
+        // Assign default avatar if no image is provided
+        final finalImagePath = _imagePath ?? _imageService.assignDefaultAvatar(_name);
+        
         final newContact = Contact(
           id: Uuid().v4(),
           name: _name,
           phone: _phone,
           email: _email,
-          imagePath: _imagePath,
+          imagePath: finalImagePath,
           circle: _circle,
           importantDates: _importantDates,
         );
@@ -226,13 +320,21 @@ class _AddEditContactScreenState extends State<AddEditContactScreen> {
                         ),
                         SizedBox(height: 16),
                         TextFormField(
-                          initialValue: _phone,
+                          controller: _phoneController,
                           decoration: InputDecoration(
                             labelText: 'Phone',
+                            hintText: 'e.g., (555) 123-4567, +44 20 7946 0958',
                             border: OutlineInputBorder(),
                             prefixIcon: Icon(Icons.phone),
                           ),
                           keyboardType: TextInputType.phone,
+                          inputFormatters: [PhoneNumberFormatter()],
+                          validator: (value) {
+                            if (value != null && value.isNotEmpty && !_isValidPhone(value)) {
+                              return 'Please enter a valid phone number (7-15 digits)';
+                            }
+                            return null;
+                          },
                           onSaved: (value) => _phone = value ?? '',
                         ),
                         SizedBox(height: 16),
@@ -240,10 +342,17 @@ class _AddEditContactScreenState extends State<AddEditContactScreen> {
                           initialValue: _email,
                           decoration: InputDecoration(
                             labelText: 'Email',
+                            hintText: 'example@email.com',
                             border: OutlineInputBorder(),
                             prefixIcon: Icon(Icons.email),
                           ),
                           keyboardType: TextInputType.emailAddress,
+                          validator: (value) {
+                            if (value != null && value.isNotEmpty && !_isValidEmail(value)) {
+                              return 'Please enter a valid email address';
+                            }
+                            return null;
+                          },
                           onSaved: (value) => _email = value ?? '',
                         ),
                       ],

@@ -405,16 +405,17 @@ class _ContactListScreenState extends State<ContactListScreen> {
       
       for (final deviceContact in selectedContacts) {
         // Convert device contact to our Contact model
+        final contactName = deviceContact.displayName.isNotEmpty ? deviceContact.displayName : 'Unknown';
         final contact = Contact(
           id: DateTime.now().millisecondsSinceEpoch.toString() + '_' + importedCount.toString(),
-          name: deviceContact.displayName.isNotEmpty ? deviceContact.displayName : 'Unknown',
+          name: contactName,
           phone: deviceContact.phones.isNotEmpty 
-            ? deviceContact.phones.first.number 
+            ? _formatPhoneNumber(deviceContact.phones.first.number)
             : '',
           email: deviceContact.emails.isNotEmpty 
             ? deviceContact.emails.first.address 
             : '',
-          imagePath: null, // We'll handle image import separately if needed
+          imagePath: _imageService.assignDefaultAvatar(contactName), // Assign cute default avatar
           circle: 'Friends', // Default circle for imported contacts
           importantDates: [], // User can add these manually later
         );
@@ -462,6 +463,32 @@ class _ContactListScreenState extends State<ContactListScreen> {
         ],
       ),
     );
+  }
+
+  // Helper method to intelligently format phone numbers during import
+  String _formatPhoneNumber(String phoneNumber) {
+    if (phoneNumber.isEmpty) return phoneNumber;
+    
+    // If it already has a country code or special formatting, preserve it
+    if (phoneNumber.startsWith('+') || phoneNumber.contains('(')) {
+      return phoneNumber;
+    }
+    
+    // Remove all non-digit characters for analysis
+    final cleanPhone = phoneNumber.replaceAll(RegExp(r'[^\d]'), '');
+    
+    // Only format US numbers (10 or 11 digits)
+    if (cleanPhone.length == 10) {
+      // Format as (###) ###-####
+      return '(${cleanPhone.substring(0, 3)}) ${cleanPhone.substring(3, 6)}-${cleanPhone.substring(6)}';
+    } else if (cleanPhone.length == 11 && cleanPhone.startsWith('1')) {
+      // Format as +1 (###) ###-####
+      final withoutCountryCode = cleanPhone.substring(1);
+      return '+1 (${withoutCountryCode.substring(0, 3)}) ${withoutCountryCode.substring(3, 6)}-${withoutCountryCode.substring(6)}';
+    }
+    
+    // For international numbers or unexpected formats, preserve the original
+    return phoneNumber;
   }
 
   Widget _buildContactCard(Contact contact) {
