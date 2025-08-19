@@ -21,12 +21,13 @@ class CircleFilterChip extends StatefulWidget {
 class _CircleFilterChipState extends State<CircleFilterChip> {
   final CircleService _circleService = CircleService();
   Color? _circleColor;
+  String? _circleEmoji;
 
   @override
   void initState() {
     super.initState();
     if (widget.circle != 'All') {
-      _loadCircleColor();
+      _loadCircleData();
     }
   }
 
@@ -34,22 +35,48 @@ class _CircleFilterChipState extends State<CircleFilterChip> {
   void didUpdateWidget(CircleFilterChip oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.circle != widget.circle && widget.circle != 'All') {
-      _loadCircleColor();
+      _loadCircleData();
     }
   }
 
-  Future<void> _loadCircleColor() async {
-    final color = await _circleService.getCircleColor(widget.circle);
-    if (mounted) {
-      setState(() {
-        _circleColor = color;
-      });
+  Future<void> _loadCircleData() async {
+    try {
+      final circles = await _circleService.getAllCircles();
+      final circle = circles.firstWhere(
+        (c) => c.name == widget.circle,
+        orElse: () => Circle(
+          id: 'fallback', 
+          name: widget.circle, 
+          emoji: Circles.getCircleEmoji(widget.circle), 
+          colorValue: Circles.getDefaultCircleColor(widget.circle), 
+          isDefault: true, 
+          order: 999,
+        ),
+      );
+      
+      if (mounted) {
+        setState(() {
+          _circleColor = Color(circle.colorValue);
+          _circleEmoji = circle.emoji;
+        });
+      }
+    } catch (e) {
+      print('Error loading circle data for ${widget.circle}: $e');
+      // Use fallback data
+      if (mounted) {
+        setState(() {
+          _circleColor = Color(Circles.getDefaultCircleColor(widget.circle));
+          _circleEmoji = Circles.getCircleEmoji(widget.circle);
+        });
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final emoji = widget.circle == 'All' ? '🌟' : Circles.getCircleEmoji(widget.circle);
+    final emoji = widget.circle == 'All' 
+        ? '🌟' 
+        : (_circleEmoji ?? Circles.getCircleEmoji(widget.circle));
     final color = widget.circle == 'All' 
         ? Colors.teal 
         : (_circleColor ?? Color(Circles.getDefaultCircleColor(widget.circle)));

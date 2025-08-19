@@ -17,35 +17,50 @@ class CircleBadge extends StatefulWidget {
 class _CircleBadgeState extends State<CircleBadge> {
   final CircleService _circleService = CircleService();
   Color? _circleColor;
+  String? _circleEmoji;
 
   @override
   void initState() {
     super.initState();
-    _loadCircleColor();
+    _loadCircleData();
   }
 
   @override
   void didUpdateWidget(CircleBadge oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.circle != widget.circle) {
-      _loadCircleColor();
+      _loadCircleData();
     }
   }
 
-  Future<void> _loadCircleColor() async {
+  Future<void> _loadCircleData() async {
     try {
-      final color = await _circleService.getCircleColor(widget.circle);
+      final circles = await _circleService.getAllCircles();
+      final circle = circles.firstWhere(
+        (c) => c.name == widget.circle,
+        orElse: () => Circle(
+          id: 'fallback', 
+          name: widget.circle, 
+          emoji: Circles.getCircleEmoji(widget.circle), 
+          colorValue: Circles.getDefaultCircleColor(widget.circle), 
+          isDefault: true, 
+          order: 999,
+        ),
+      );
+      
       if (mounted) {
         setState(() {
-          _circleColor = color;
+          _circleColor = Color(circle.colorValue);
+          _circleEmoji = circle.emoji;
         });
       }
     } catch (e) {
-      print('Error loading circle color for ${widget.circle}: $e');
-      // Use fallback color
+      print('Error loading circle data for ${widget.circle}: $e');
+      // Use fallback data
       if (mounted) {
         setState(() {
           _circleColor = Color(Circles.getDefaultCircleColor(widget.circle));
+          _circleEmoji = Circles.getCircleEmoji(widget.circle);
         });
       }
     }
@@ -54,6 +69,7 @@ class _CircleBadgeState extends State<CircleBadge> {
   @override
   Widget build(BuildContext context) {
     final color = _circleColor ?? Color(Circles.getDefaultCircleColor(widget.circle));
+    final emoji = _circleEmoji ?? Circles.getCircleEmoji(widget.circle);
     
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -62,7 +78,7 @@ class _CircleBadgeState extends State<CircleBadge> {
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
-        '${Circles.getCircleEmoji(widget.circle)} ${widget.circle}',
+        '$emoji ${widget.circle}',
         style: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w500,

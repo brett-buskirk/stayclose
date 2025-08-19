@@ -29,6 +29,7 @@ class _ContactListScreenState extends State<ContactListScreen> {
   String _selectedCircle = 'All';
   bool _isMultiSelectMode = false;
   Set<String> _selectedContactIds = <String>{};
+  int _circleDataVersion = 0; // Used to force widget rebuilds when circle data changes
 
   @override
   void initState() {
@@ -48,6 +49,7 @@ class _ContactListScreenState extends State<ContactListScreen> {
       final circles = await _circleService.getAllCircles();
       setState(() {
         _circles = circles;
+        _circleDataVersion++; // Increment to trigger widget rebuilds
       });
     } catch (e) {
       print('Error loading circles: $e');
@@ -510,7 +512,10 @@ class _ContactListScreenState extends State<ContactListScreen> {
             // Circle badge
             Padding(
               padding: EdgeInsets.only(bottom: 4),
-              child: CircleBadge(circle: contact.circle),
+              child: CircleBadge(
+                key: ValueKey('${contact.circle}_$_circleDataVersion'),
+                circle: contact.circle,
+              ),
             ),
             if (contact.phone.isNotEmpty)
               Row(
@@ -601,6 +606,7 @@ class _ContactListScreenState extends State<ContactListScreen> {
     final isSelected = _selectedCircle == circle;
     
     return CircleFilterChip(
+      key: ValueKey('${circle}_$_circleDataVersion'),
       circle: circle,
       isSelected: isSelected,
       onSelected: (selected) => _onCircleChanged(circle),
@@ -648,7 +654,7 @@ class _ContactListScreenState extends State<ContactListScreen> {
                       MaterialPageRoute(
                         builder: (context) => SettingsScreen(),
                       ),
-                    );
+                    ).then((_) => _loadData());
                   },
                   icon: Icon(Icons.settings),
                   tooltip: 'Settings',
